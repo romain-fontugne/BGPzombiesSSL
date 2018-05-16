@@ -71,7 +71,8 @@ class BGPData():
             bgprFilter +=  " and ipversion 4"
 
         bgprFilter += " and project ris " 
-        bgprFilter += " and prefix more %s " % self.prefix
+        for prefix in self.prefixes:
+            bgprFilter += " and prefix more %s " % prefix
 
         logging.info("Connecting to BGPstream... (%s)" % bgprFilter)
         logging.info("Timestamps: %s, %s" % (self.startts, self.endts))
@@ -114,14 +115,14 @@ class BGPData():
                 path = lastPath.split(" ")
 
                 for a0, a1 in zip(path[:-1], path[1:]):
-                    self.asgraph.add_edge(a0,a1)
+                    asgraph.add_edge(a0,a1)
 
-            nx.write_adjlist(self.asgraph, "graph_%s_%s.txt" % (self.endts ,prefix))
+            nx.write_adjlist(asgraph, "graph_%s_%s.txt" % (self.endts ,prefix.replace("/", "_")))
 
 
     def saveZombieFile(self):
         for prefix in self.prefixes:
-            with open("zombies_%s_%s.txt" % (self.endts, prefix), "w") as fi:
+            with open("zombies_%s_%s.txt" % (self.endts, prefix.replace("/", "_")), "w") as fi:
                 for asn, w in self.withdraws[prefix].iteritems():
                     label = 0
                     if not w:

@@ -24,7 +24,6 @@ class TracerouteData():
             (is_success, response) = request.get()
             if not is_success:
                 logging.warn("Something wrong happened while fetching measurement descriptions")
-                return False
 
             self.msms.extend( response["results"] )
             if response["next"] is not None:
@@ -33,7 +32,6 @@ class TracerouteData():
                 nextPath = False
             logging.info(nextPath)	
 
-        return True
 
 
     def getTraceroutes(self):
@@ -49,8 +47,7 @@ class TracerouteData():
             else:
                 logging.warn("Something wrong happened while fetching traceroute results")
                 logging.warn(response)
-                return False
-        return True
+
 
 
     def getAll(self):
@@ -62,8 +59,6 @@ class TracerouteData():
         self.getTraceroutes()
 	logging.info("Save events...")
         self.listEvents()
-        with open("events.pickle","w") as fi:
-            pickle.dump(self.events,fi)
 
         return self.events
 
@@ -75,6 +70,10 @@ class TracerouteData():
         for msm in self.msms:
             zombies = set()
             clean = set()
+            if msm["id"] not in self.traceroutes:
+                logging.warn("No traceroutes for msm %s " % msm["id"])
+                continue
+
             for trace in self.traceroutes[msm["id"]]:
                 for hop in trace["result"]:
                     if "result" in hop:
