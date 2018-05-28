@@ -59,3 +59,4 @@ for msmid, desc in events.iteritems():
 
 # map(getBGPdata, aggEvents.items())
 proc.map(getBGPdata, aggEvents.items())
+
