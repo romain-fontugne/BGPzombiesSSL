@@ -96,7 +96,7 @@ def validation(ts = 1505287800, prefix = "84.205.67.0/24"):
         pass
     fname = "validation/%s_%s/validation.txt" % (ts, prefix.replace("/","_"))
     fi = open(fname,"w")
-    fi.write("%s nodes in total" % (len(G)))
+    fi.write("%s nodes in total\n" % (len(G)))
     fi.write("Traceroute: %s zombies, %s normal\n" % (len(ztr), len(ntr)))
     fi.write("BGP: %s zombies, %s normal\n" % (len(zbgp), len(nbgp)))
     fi.write("Ground Truth: %s zombies, %s normal, %s unknown\n" % (len(zgt), len(ngt), len(cgt)))
