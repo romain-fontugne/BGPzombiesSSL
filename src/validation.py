@@ -99,7 +99,7 @@ def validation(ts = 1505287800, prefix = "84.205.67.0/24"):
     fi.write("%s nodes in total\n" % (len(G)))
     fi.write("Traceroute: %s zombies, %s normal\n" % (len(ztr), len(ntr)))
     fi.write("BGP: %s zombies, %s normal\n" % (len(zbgp), len(nbgp)))
-    fi.write("Ground Truth: %s zombies, %s normal, %s unknown\n" % (len(zgt), len(ngt), len(cgt)))
+    fi.write("Ground Truth: %s zombies, %s normal, %s conflicting\n" % (len(zgt), len(ngt), len(cgt)))
     fi.write("Page Rank: %s zombies, %s normal\n" % (len(zpr), len(npr)))
     # print "Intersection: zombies gt&pr %s" % (len(zgt.intersection(zpr)))
     # print "Intersection: normal gt&pr %s" % (len(ngt.intersection(npr)))

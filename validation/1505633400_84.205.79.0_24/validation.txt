@@ -1,0 +1,12 @@
+189 nodes in total
+Traceroute: 12 zombies, 2 normal
+BGP: 9 zombies, 123 normal
+Ground Truth: 15 zombies, 121 normal, 3 conflicting
+Page Rank: 12 zombies, 177 normal
+
+                        Ground Truth
+            zombie    normal    conflict     unknown
+
+    zombie      11          0          0          1
+    normal      4          120          3          50
+    
