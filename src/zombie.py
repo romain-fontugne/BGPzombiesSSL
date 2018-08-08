@@ -32,8 +32,8 @@ def getBGPdata( params ):
     bd.saveZombieFile()
 
 
-starttime = 1506816000
-endtime = 1514764800
+starttime = 1531958400
+endtime = 1533772800
 
 FORMAT = '%(asctime)s %(processName)s %(message)s'
 logging.basicConfig(format=FORMAT, filename='zombie_%s.log' % starttime, level=logging.DEBUG, datefmt='%Y-%m-%d %H:%M:%S')

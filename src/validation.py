@@ -3,7 +3,7 @@ import logging
 import sys
 from matplotlib import pylab as plt
 import glob
-import cPickle as pickle
+import pickle
 import networkx as nx
 from collections import defaultdict
 
