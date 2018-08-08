@@ -1,9 +1,11 @@
 import os
+import logging
 import sys
 from matplotlib import pylab as plt
 import glob
 import cPickle as pickle
 import networkx as nx
+from collections import defaultdict
 
 sys.path.append("../ip2asn")
 import ip2asn
@@ -11,12 +13,22 @@ import ip2asn
 ia = ip2asn.ip2asn("../ip2asn/db/rib.20180201.pickle")
 
 def asnres(ip):
+    """Find the ASN corresponding to the given IP address"""
+
     asn = ia.ip2asn(ip)
     if asn == "unknown":
         asn="0"
     return str(asn)
 
 def validation(ts = 1505287800, prefix = "84.205.67.0/24"):
+    """Validate SSL results using traceroute data.
+    
+    Compare SSL results to BGP results and responding IP addresses found in 
+    traceroute data. Also plot the results in a graph where node shape stands 
+    for SSL results (triangle=zombie, circle=normal) and the color represents 
+    the ground truth (red=zombie, green=normal, orange means results from 
+    traceroutes and BGP are inconsistent, and gray means unknown)"""
+
     fname = "results/graph_%s_%s.txt" % (ts, prefix.replace("/", "_"))
     G = nx.read_adjlist(fname)
 
@@ -25,10 +37,12 @@ def validation(ts = 1505287800, prefix = "84.205.67.0/24"):
 
     ztr = set()
     ntr = set()
+    asn2ip = defaultdict(list) 
     for msmid, desc in events.iteritems():
         if 1800+(desc["start"]/3600)*3600 == ts and desc["prefix"] == prefix:
             for ip in desc["zombie"]:
                 asn = asnres(ip)
+                asn2ip[asn].append(ip)
                 if asn in G:
                     ztr.add(asn)
 
@@ -71,7 +85,11 @@ def validation(ts = 1505287800, prefix = "84.205.67.0/24"):
 
 
     ##### Esteban's results #####
-    fname = "esteban/%s_%s/result/classification.txt" % (ts, prefix.replace("/","_"))
+    fname = "20180623_BGPcount/%s_%s/result/classification.txt" % (ts, prefix.replace("/","_"))
+
+    if not os.path.exists(fname):
+        logging.error("Error no classification resutls: {}".format(fname))
+        return
 
     zpr = set()
     npr = set()
@@ -121,7 +139,7 @@ def validation(ts = 1505287800, prefix = "84.205.67.0/24"):
     pos = nx.kamada_kawai_layout(G)
 
     plt.figure(figsize=(12,12))
-    nx.draw_networkx_nodes(G,pos, nodelist=["12654"], node_color='k',  node_size=600)
+    nx.draw_networkx_nodes(G,pos, nodelist=["12654"], node_color='b',  node_size=700)
     nx.draw_networkx_nodes(G,pos, nodelist=zpr.intersection(zgt), node_color='r', node_shape="^", node_size=300)
     nx.draw_networkx_nodes(G,pos, nodelist=zpr.intersection(ngt), node_color='g', node_shape="^", node_size=300)
     nx.draw_networkx_nodes(G,pos, nodelist=zpr.intersection(cgt), node_color='orange', node_shape="^", node_size=300)
@@ -141,9 +159,11 @@ def validation(ts = 1505287800, prefix = "84.205.67.0/24"):
     plt.savefig("validation/%s_%s/graph_labelled.pdf" % (ts, prefix.replace("/","_")))
     # plt.show()
 
+    return asn2ip
+
 if __name__ == "__main__":
     if len(sys.argv) == 1:
-        for path in glob.glob("esteban/*_24"):
+        for path in glob.glob("20180623_BGPcount/*_24"):
             dname = path.rpartition("/")[2]
             ts, _, prefix = dname.partition("_")
             prefix = prefix.replace("_","/")
