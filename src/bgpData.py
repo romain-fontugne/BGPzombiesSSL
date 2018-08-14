@@ -1,14 +1,13 @@
 import logging
-import cPickle as pickle
+import pickle
 import networkx as nx
 from _pybgpstream import BGPStream, BGPRecord, BGPElem
 from collections import defaultdict
 
-
 class BGPData():
 
     def __init__(self, startts, endts, prefixes):
-        self.events = pickle.load(open("events.pickle","r"))
+        self.events = pickle.load(open("events.pickle","rb"))
         self.paths = defaultdict(dict)
         self.withdraws = defaultdict(dict)
         self.startts = startts
@@ -42,7 +41,7 @@ class BGPData():
         stream.start()
         while(stream.get_next_record(rec)):
             if rec.status  != "valid":
-                print rec.project, rec.collector, rec.type, rec.time, rec.status
+                print(rec.project, rec.collector, rec.type, rec.time, rec.status)
 
             zDt = rec.time
             elem = rec.get_next_elem()
@@ -82,7 +81,7 @@ class BGPData():
         stream.start()
         while(stream.get_next_record(rec)):
             if rec.status  != "valid":
-                print rec.project, rec.collector, rec.type, rec.time, rec.status
+                print(rec.project, rec.collector, rec.type, rec.time, rec.status)
 
             zDt = rec.time
             elem = rec.get_next_elem()
@@ -123,7 +122,7 @@ class BGPData():
     def saveZombieFile(self):
         for prefix in self.prefixes:
             with open("zombies_%s_%s.txt" % (self.endts, prefix.replace("/", "_")), "w") as fi:
-                for asn, w in self.withdraws[prefix].iteritems():
+                for asn, w in self.withdraws[prefix].items():
                     label = 0
                     if not w:
                         label = 1

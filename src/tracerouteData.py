@@ -1,5 +1,4 @@
 import logging
-import cPickle as pickle
 from ripe.atlas.cousteau import AtlasRequest
 from ripe.atlas.cousteau import AtlasResultsRequest
 
@@ -11,7 +10,7 @@ class TracerouteData():
         self.af=4
         self.msmsURL = "/api/v2/measurements/?description__contains=campaign:stuck_routes&start_time__gte=%s&stop_time__lt=%s&af=%s" 
         self.msms = []
-	self.traceroutes = {}
+        self.traceroutes = {}
         self.events = {} 
 
 
@@ -42,7 +41,7 @@ class TracerouteData():
             request = AtlasRequest(**{"url_path": resPath})
             (is_success, response) = request.get()
 
-	    if is_success:
+            if is_success:
                 self.traceroutes[msm["id"]] = response
             else:
                 logging.warn("Something wrong happened while fetching traceroute results")
@@ -53,11 +52,11 @@ class TracerouteData():
     def getAll(self):
         """Get measurements metadata and corresponding traceroute data"""
 
-	logging.info("Fetching measurements metadata...")
+        logging.info("Fetching measurements metadata...")
         self.getMsmIds()
-	logging.info("Fetching traceroute results...")
+        logging.info("Fetching traceroute results...")
         self.getTraceroutes()
-	logging.info("Save events...")
+        logging.info("Save events...")
         self.listEvents()
 
         return self.events

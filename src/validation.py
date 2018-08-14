@@ -38,7 +38,7 @@ def validation(ts = 1505287800, prefix = "84.205.67.0/24"):
     ztr = set()
     ntr = set()
     asn2ip = defaultdict(list) 
-    for msmid, desc in events.iteritems():
+    for msmid, desc in events.items():
         if 1800+(desc["start"]/3600)*3600 == ts and desc["prefix"] == prefix:
             for ip in desc["zombie"]:
                 asn = asnres(ip)
