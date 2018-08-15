@@ -33,7 +33,7 @@ def validation(ts = 1505287800, prefix = "84.205.67.0/24"):
     G = nx.read_adjlist(fname)
 
     ##### Traceroute data #####
-    events = pickle.load(open("events.pickle"))
+    events = pickle.load(open("events.pickle", "rb"))
 
     ztr = set()
     ntr = set()
@@ -65,10 +65,11 @@ def validation(ts = 1505287800, prefix = "84.205.67.0/24"):
     for line in open(fname):
         asn, zombie = [x for x in line.split()]
         
-        if int(zombie):
-            zbgp.add(asn)
-        else:
-            nbgp.add(asn)
+        if asn in G:
+            if int(zombie):
+                zbgp.add(asn)
+            else:
+                nbgp.add(asn)
 
 
     ##### Ground Truth: Merge BGP and traceroute #####
@@ -138,6 +139,24 @@ def validation(ts = 1505287800, prefix = "84.205.67.0/24"):
     # pos = nx.spring_layout(G)
     pos = nx.kamada_kawai_layout(G)
 
+    # INPUT Graph
+    plt.figure(figsize=(12,12))
+    nx.draw_networkx_nodes(G,pos, nodelist=["12654"], node_color='b',  node_size=700)
+    nx.draw_networkx_nodes(G,pos, nodelist=zbgp, node_color='r', node_shape="o", node_size=300)
+    nx.draw_networkx_nodes(G,pos, nodelist=nbgp, node_color='g', node_shape="o", node_size=300)
+    nx.draw_networkx_nodes(G,pos, nodelist=zpr.union(npr).difference(zbgp).difference(nbgp), node_color='gray', node_shape="o", node_size=300)
+
+    nx.draw_networkx_edges(G,pos,width=1.0,alpha=0.5, edge_color="k")
+
+    plt.grid(False)
+    plt.axis("off")
+    plt.tight_layout()
+    plt.savefig("validation/%s_%s/graph_input.pdf" % (ts, prefix.replace("/","_")))
+    nx.draw_networkx_labels(G, pos, {x:x for x in G.nodes()})
+    plt.savefig("validation/%s_%s/graph_input_labelled.pdf" % (ts, prefix.replace("/","_")))
+    # plt.show()
+
+    # OUTPUT Graph and groud truth
     plt.figure(figsize=(12,12))
     nx.draw_networkx_nodes(G,pos, nodelist=["12654"], node_color='b',  node_size=700)
     nx.draw_networkx_nodes(G,pos, nodelist=zpr.intersection(zgt), node_color='r', node_shape="^", node_size=300)
