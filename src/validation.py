@@ -11,6 +11,7 @@ sys.path.append("../ip2asn")
 import ip2asn
 
 ia = ip2asn.ip2asn("../ip2asn/db/rib.20180201.pickle")
+esteban_results_directory = "20180623_BGPcount"
 
 def asnres(ip):
     """Find the ASN corresponding to the given IP address"""
@@ -86,7 +87,7 @@ def validation(ts = 1505287800, prefix = "84.205.67.0/24"):
 
 
     ##### Esteban's results #####
-    fname = "20180623_BGPcount/%s_%s/result/classification.txt" % (ts, prefix.replace("/","_"))
+    fname = esteban_results_directory+"/%s_%s/result/classification.txt" % (ts, prefix.replace("/","_"))
 
     if not os.path.exists(fname):
         logging.error("Error no classification resutls: {}".format(fname))

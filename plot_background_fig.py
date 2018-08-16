@@ -49,6 +49,9 @@ def plot_figure(results_all_prefixes):
                 data_mat.append(states)
                 plotted_peers.append("AS{}".format(peerasn))
 
+        
+        if not data_mat:
+            continue
 
         arr = np.vstack(data_mat)
         arr[arr=="A"] = 1
@@ -56,7 +59,7 @@ def plot_figure(results_all_prefixes):
         arr = arr.astype(np.int)
         
 
-        fig, ax = plt.subplots(figsize=(10,3))
+        fig, ax = plt.subplots(figsize=(12,3))
         cmap = ListedColormap(['red','limegreen'])
         im = plt.pcolor(arr, cmap=cmap, edgecolors='w', axes=ax)
         plt.yticks(np.arange(0.5,len(plotted_peers)+0.5), plotted_peers)
