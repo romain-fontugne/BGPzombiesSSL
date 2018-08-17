@@ -59,6 +59,10 @@ def get_classification_results(ts = 1505287800, prefix = "84.205.67.0/24"):
     if len(zombie_asns) == 0:
         return None
 
+    if len(zombie_asns) > 40:
+        print(ts, prefix, end=",", sep=", ")
+        print("{} zombies".format(len(zombie_asns)))
+
     return {"zombie": zombie_asns, "normal": normal_asns}
 
 
@@ -110,16 +114,23 @@ def compute_all_stats():
             for ts, pfx_res in all_classification_results.items()]
 
 
-    print("On average we have {} zombie AS per outbreak".format(np.mean([len(z) for z in zombies_per_timebin])))
-    print("On average we have {} AS in the AS graph".format(
+    nb_zombie_per_outbreak = [len(z) for z in zombies_per_timebin]
+    print("On average we have {:.02f} zombie AS per outbreak (median={})".format(np.mean(nb_zombie_per_outbreak),np.median(nb_zombie_per_outbreak)))
+    print("On average we have {:.02f} AS in the AS graph".format(
         np.mean(
-            [len(z)+len(n) for z,n in zip(zombies_per_timebin, normal_per_timebin)]
+            [len(z.union(n)) for z,n in zip(zombies_per_timebin, normal_per_timebin)]
         )))
     print("That's {:.02f}% zombie AS per outbreak".format(
         np.mean(
             [100*len(z)/(len(z)+len(n)) for z,n in zip(zombies_per_timebin, normal_per_timebin)]
         )))
 
+    plt.figure()
+    rfplt.ecdf(nb_zombie_per_outbreak)
+    plt.xlabel("Number zombie ASN per outbreak")
+    plt.ylabel("CDF")
+    plt.tight_layout()
+    plt.savefig("fig/CDF_nb_zombie_per_outbreak.pdf")
 
     asn_zombie_frequency = collections.Counter(itertools.chain.from_iterable(zombies_per_timebin))
     # add normal ASes:
@@ -139,6 +150,17 @@ def compute_all_stats():
     plt.savefig("fig/CDF_zombie_freq_per_asn.pdf")
     # plt.show()
 
+    from efficient_apriori import apriori
+
+    itemsets, rules = apriori(zombies_per_timebin, min_support=0.3, min_confidence=1)
+    # print(zombies_per_timebin)
+    # for nb_elem, items in itemsets.items():
+        # if nb_elem > 1:
+            # print(nb_elem)
+            # print(items)
+
+    # rules_rhs = filter(lambda rule: len(rule.lhs)==1 and len(rule.rhs)>4, rules)
+    # print(list(rules_rhs))
 
 if __name__ == "__main__":
     compute_all_stats()    
