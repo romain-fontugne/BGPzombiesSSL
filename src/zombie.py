@@ -13,7 +13,7 @@ from multiprocessing import Pool
 
 def getBGPdata( params ):
     etime = int(params[0])
-    prefixes = params[1]
+    prefixes = params[1][0]
 
     if not os.path.exists("zombies_{}_{}.txt".format(etime, prefixes[-1].replace("/","_"))):
         tmpdate = datetime.utcfromtimestamp(etime) 
@@ -27,22 +27,24 @@ def getBGPdata( params ):
 
         stime = time.mktime(tmpdate.timetuple())
 
-        bd = bgpData.BGPData(int(stime), int(etime), prefixes)
+        bd = bgpData.BGPData(int(stime), int(etime), prefixes, )
         bd.readAllData()
         bd.saveGraph()
         bd.saveZombieFile()
     
     else:
-        logging.warn("Already got BGP data: {}, {}".format(etime, prefixes))
+        logging.warning("Already got BGP data: {}, {}".format(etime, prefixes))
 
 starttime = 1531958400
-endtime = 1533772800
+# starttime = 1533772800
+# endtime = 1535068800
+endtime = 1536710400
 
 FORMAT = '%(asctime)s %(processName)s %(message)s'
 logging.basicConfig(format=FORMAT, filename='zombie_%s.log' % starttime, level=logging.DEBUG, datefmt='%Y-%m-%d %H:%M:%S')
 logging.info("Started: %s" % sys.argv)
 
-proc = Pool(12)
+proc = Pool(64)
 
 # Retrieve zombies found by Emile
 if os.path.exists("events_%s_%s.pickle" % (starttime, endtime)):
@@ -58,7 +60,7 @@ else:
 # Group events by timestamp and prefix
 aggEvents = defaultdict(list)
 for msmid, desc in events.items():
-    aggEvents[1800+(desc["start"]/3600)*3600].append(desc["prefix"])
+    aggEvents[1800+(desc["start"]/3600)*3600].append( (desc["prefix"],) )
 
 # map(getBGPdata, aggEvents.items())
 proc.map(getBGPdata, aggEvents.items())

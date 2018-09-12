@@ -4,11 +4,10 @@ from ripe.atlas.cousteau import AtlasResultsRequest
 
 class TracerouteData():
 
-    def __init__(self, starttime, endtime):
+    def __init__(self, starttime, endtime ):
         self.starttime = starttime
         self.endtime = endtime
-        self.af=4
-        self.msmsURL = "/api/v2/measurements/?description__contains=campaign:stuck_routes&start_time__gte=%s&stop_time__lt=%s&af=%s" 
+        self.msmsURL = "/api/v2/measurements/?description__contains=campaign:stuck_routes&start_time__gte=%s&stop_time__lt=%s" 
         self.msms = []
         self.traceroutes = {}
         self.events = {} 
@@ -17,7 +16,7 @@ class TracerouteData():
     def getMsmIds(self):
         """Get metadata for measurements corresponding to self.msmsURL"""
 
-        nextPath = self.msmsURL % (self.starttime, self.endtime, self.af)
+        nextPath = self.msmsURL % (self.starttime, self.endtime )
         while nextPath:
             request = AtlasRequest(**{"url_path": nextPath})
             (is_success, response) = request.get()
@@ -54,6 +53,7 @@ class TracerouteData():
 
         logging.info("Fetching measurements metadata...")
         self.getMsmIds()
+        logging.info("Found {} msms".format(len(self.msms)))
         logging.info("Fetching traceroute results...")
         self.getTraceroutes()
         logging.info("Save events...")
@@ -89,9 +89,9 @@ class TracerouteData():
                                 else:
                                     clean.add(router["from"])
 
-            if self.af==4:
+            if "." in msm["target_ip"]: 
                 prefix = msm["target_ip"].rpartition(".")[0]+".0/24"
-            if self.af==6:
+            if ":" in msm["target_ip"]:
                 prefix = msm["target_ip"].rpartition(":")[0]+":/48"
             self.events[msm["id"]] = {
                     "start": msm["start_time"], 

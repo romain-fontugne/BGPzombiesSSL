@@ -7,13 +7,11 @@ from collections import defaultdict
 class BGPData():
 
     def __init__(self, startts, endts, prefixes):
-        self.events = pickle.load(open("events.pickle","rb"))
         self.paths = defaultdict(dict)
         self.withdraws = defaultdict(dict)
         self.startts = startts
         self.endts = endts
         self.prefixes = prefixes
-        self.af=4
 
 
     def readRIB(self):
@@ -63,11 +61,6 @@ class BGPData():
         # create a reusable bgprecord instance
         rec = BGPRecord()
         bgprFilter = "type updates"
-
-        if self.af == 6:
-            bgprFilter += " and ipversion 6"
-        else:
-            bgprFilter +=  " and ipversion 4"
 
         bgprFilter += " and project ris " 
         for prefix in self.prefixes:
@@ -131,3 +124,10 @@ class BGPData():
 
                 fi.close()
 
+
+if __name__ == "__main__":
+    bd = BGPData(1530403000, 1530403900, [
+                            "84.205.67.0/24", 
+                            "84.205.68.0/24", 
+                            "84.205.76.0/24"] )
+    bd.readRIB()
