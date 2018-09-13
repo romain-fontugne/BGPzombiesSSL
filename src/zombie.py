@@ -47,6 +47,7 @@ def getBGPdata( params ):
 starttime = 1488326400
 endtime = 1493596800
 
+
 FORMAT = '%(asctime)s %(processName)s %(message)s'
 logging.basicConfig(format=FORMAT, filename='zombie_%s.log' % starttime, level=logging.DEBUG, datefmt='%Y-%m-%d %H:%M:%S')
 logging.info("Started: %s" % sys.argv)
