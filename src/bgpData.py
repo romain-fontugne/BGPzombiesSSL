@@ -34,7 +34,7 @@ class BGPData():
         stream.start()
         while(stream.get_next_record(rec)):
             if rec.status  != "valid":
-                print(rec.project, rec.collector, rec.type, rec.time, rec.status)
+                raise Exception(rec.project, rec.collector, rec.type, rec.time, rec.status)
 
             zDt = rec.time
             elem = rec.get_next_elem()
@@ -69,7 +69,7 @@ class BGPData():
         stream.start()
         while(stream.get_next_record(rec)):
             if rec.status  != "valid":
-                print(rec.project, rec.collector, rec.type, rec.time, rec.status)
+                raise Exception(rec.project, rec.collector, rec.type, rec.time, rec.status)
 
             zDt = rec.time
             elem = rec.get_next_elem()

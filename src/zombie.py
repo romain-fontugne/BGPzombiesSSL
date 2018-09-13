@@ -28,9 +28,13 @@ def getBGPdata( params ):
         stime = time.mktime(tmpdate.timetuple())
 
         bd = bgpData.BGPData(int(stime), int(etime), prefixes, )
-        bd.readAllData()
-        bd.saveGraph()
-        bd.saveZombieFile()
+        try:
+            bd.readAllData()
+            bd.saveGraph()
+            bd.saveZombieFile()
+        except Exception as e:
+            logging.error("Error while getting data")
+            logging.error(e)
     
     else:
         logging.warning("Already got BGP data: {}, {}".format(etime, prefixes))
@@ -40,12 +44,12 @@ def getBGPdata( params ):
 # endtime = 1536710400
 
 # 2017/10 and 2017/12
-starttime = 1506816000
-endtime = 1514764800
+# starttime = 1506816000
+# endtime = 1514764800
 
 # 2017/03 and 2017/04
-# starttime = 1488326400
-# endtime = 1493596800
+starttime = 1488326400
+endtime = 1493596800
 
 
 FORMAT = '%(asctime)s %(processName)s %(message)s'
