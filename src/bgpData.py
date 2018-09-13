@@ -21,11 +21,6 @@ class BGPData():
         rec = BGPRecord()
         bgprFilter = "type ribs"
 
-        if self.af == 6:
-            bgprFilter += " and ipversion 6"
-        else:
-            bgprFilter +=  " and ipversion 4"
-
         bgprFilter += " and project ris " 
 
         for prefix in self.prefixes:
