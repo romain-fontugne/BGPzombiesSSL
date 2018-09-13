@@ -56,7 +56,7 @@ FORMAT = '%(asctime)s %(processName)s %(message)s'
 logging.basicConfig(format=FORMAT, filename='zombie_%s.log' % starttime, level=logging.DEBUG, datefmt='%Y-%m-%d %H:%M:%S')
 logging.info("Started: %s" % sys.argv)
 
-proc = Pool(8)
+proc = Pool(16)
 
 # Retrieve zombies found by Emile
 if os.path.exists("events_%s_%s.pickle" % (starttime, endtime)):
