@@ -68,6 +68,8 @@ else:
     events = td.getAll()
     with open("events_%s_%s.pickle" % (starttime, endtime),"wb") as fi:
         pickle.dump(events,fi)
+    with open("traceroutes_%s_%s.pickle" % (starttime, endtime),"wb") as fi:
+        pickle.dump(td,fi)
 
 # Group events by timestamp and prefix
 aggEvents = defaultdict(list)

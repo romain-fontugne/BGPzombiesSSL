@@ -6,6 +6,7 @@ import glob
 import pickle
 import networkx as nx
 from collections import defaultdict
+import multiprocessing
 
 sys.path.append("../ip2asn")
 import ip2asn
@@ -30,6 +31,7 @@ def validation(ts = 1505287800, prefix = "84.205.67.0/24"):
     the ground truth (red=zombie, green=normal, orange means results from 
     traceroutes and BGP are inconsistent, and gray means unknown)"""
 
+    print("Processing %s %s..." % (ts, prefix))
     fname = "results/graph_%s_%s.txt" % (ts, prefix.replace("/", "_"))
     G = nx.read_adjlist(fname)
 
@@ -90,7 +92,7 @@ def validation(ts = 1505287800, prefix = "84.205.67.0/24"):
     fname = esteban_results_directory+"/%s_%s/result/classification.txt" % (ts, prefix.replace("/","_"))
 
     if not os.path.exists(fname):
-        logging.error("Error no classification resutls: {}".format(fname))
+        logging.error("Error no classification results: {}".format(fname))
         return
 
     zpr = set()
@@ -179,17 +181,46 @@ def validation(ts = 1505287800, prefix = "84.205.67.0/24"):
     plt.savefig("validation/%s_%s/graph_labelled.pdf" % (ts, prefix.replace("/","_")))
     # plt.show()
 
-    return asn2ip
+    return {"ZZ":len(zpr.intersection(zgt)), "ZN":len(zpr.intersection(ngt)), 
+            "ZC":len(zpr.intersection(cgt)), "ZU":len(zpr.difference(zgt.union(ngt.union(cgt)))),
+            "NZ":len(npr.intersection(zgt)), "NN":len(npr.intersection(ngt)), 
+            "NC":len(npr.intersection(cgt)), "NU":len(npr.difference(zgt.union(ngt.union(cgt))))}
 
 if __name__ == "__main__":
     if len(sys.argv) == 1:
-        for path in glob.glob("20180623_BGPcount/*_24"):
+        pool = multiprocessing.Pool()
+        params = []
+        for i, path in enumerate(glob.glob("20180623_BGPcount/*_24")):
             dname = path.rpartition("/")[2]
             ts, _, prefix = dname.partition("_")
             prefix = prefix.replace("_","/")
 
-            print("Processing %s %s..." % (ts, prefix))
-            validation(int(ts), prefix)
+            # print("Processing %s %s..." % (ts, prefix))
+            params.append( (int(ts), prefix) )
+            # validation(int(ts), prefix)
+
+            # if i == 10:
+                # break
+
+        all_results = pool.starmap(validation, params)
+
+        agg_results = defaultdict(int)
+        for res in all_results:
+            if res is None:
+                continue
+            for k, v in res.items():
+                agg_results[k]+=v
+
+        print("""
+                        Ground Truth
+            zombie    normal    conflict     unknown
+
+    zombie      %s          %s          %s          %s
+    normal      %s          %s          %s          %s
+    """ % (agg_results["ZZ"], agg_results["ZN"], agg_results["ZC"],
+        agg_results["ZU"], agg_results["NZ"], agg_results["NN"],
+        agg_results["ZC"], agg_results["ZU"])
+        )
 
     elif len(sys.argv)==3:
         ts = int(sys.argv[1])
