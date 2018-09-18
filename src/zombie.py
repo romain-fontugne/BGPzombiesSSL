@@ -40,23 +40,23 @@ def getBGPdata( params ):
         logging.warning("Already got BGP data: {}, {}".format(etime, prefixes))
 
 # 2018/7 and 2018/8
-starttime = 1531958400
-endtime = 1536710400
+# starttime = 1531958400
+# endtime = 1536710400
 
 # 2017/10 and 2017/12
 # starttime = 1506816000
 # endtime = 1514764800
 
 # 2017/03 and 2017/04
-# starttime = 1488326400
-# endtime = 1493596800
+starttime = 1488326400
+endtime = 1493596800
 
 
 FORMAT = '%(asctime)s %(processName)s %(message)s'
 logging.basicConfig(format=FORMAT, filename='zombie_%s.log' % starttime, level=logging.DEBUG, datefmt='%Y-%m-%d %H:%M:%S')
 logging.info("Started: %s" % sys.argv)
 
-proc = Pool(16)
+proc = Pool(32)
 
 # Retrieve zombies found by Emile
 if os.path.exists("events_%s_%s.pickle" % (starttime, endtime)):
