@@ -17,13 +17,13 @@ def getBGPdata( params ):
 
     if not os.path.exists("zombie_paths/zombies_{}_{}.txt".format(etime, prefixes[-1].replace("/","_"))):
         tmpdate = datetime.utcfromtimestamp(etime) 
-        tmpdate.replace(minute = 0, second = 0)
+        tmpdate = tmpdate.replace(minute = 0, second = 0)
         if tmpdate.hour < 8:
-            tmpdate.replace(hour=0)
+            tmpdate = tmpdate.replace(hour=0)
         elif tmpdate.hour < 16:
-            tmpdate.replace(hour=8)
+            tmpdate = tmpdate.replace(hour=8)
         else:
-            tmpdate.replace(hour=16)
+            tmpdate = tmpdate.replace(hour=16)
 
         stime = time.mktime(tmpdate.timetuple())
         itime = int(etime)-(60*60*2)
@@ -54,12 +54,12 @@ def getBGPdata( params ):
         logging.warning("Already got BGP data: {}, {}".format(etime, prefixes))
 
 # 2018/7 and 2018/9
-starttime = 1531958400
-endtime = 1537401600
+#starttime = 1531958400
+#endtime = 1537401600
 
 # 2017/10 and 2017/12
-# starttime = 1506816000
-# endtime = 1514764800
+starttime = 1506816000
+endtime = 1514764800
 
 # 2017/03 and 2017/04
 #starttime = 1488326400
