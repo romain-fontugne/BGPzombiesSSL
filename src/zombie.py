@@ -15,23 +15,33 @@ def getBGPdata( params ):
     etime = int(params[0])
     prefixes = params[1][0]
 
-    if not os.path.exists("zombies_{}_{}.txt".format(etime, prefixes[-1].replace("/","_"))):
+    if not os.path.exists("zombie_paths/zombies_{}_{}.txt".format(etime, prefixes[-1].replace("/","_"))):
         tmpdate = datetime.utcfromtimestamp(etime) 
+        tmpdate.replace(minute = 0, second = 0)
         if tmpdate.hour < 8:
             tmpdate.replace(hour=0)
         elif tmpdate.hour < 16:
             tmpdate.replace(hour=8)
         else:
             tmpdate.replace(hour=16)
-        tmpdate.replace(minute = 0, second = 0)
 
         stime = time.mktime(tmpdate.timetuple())
+        itime = int(etime)-(60*60*2)
 
-        bd = bgpData.BGPData(int(stime), int(etime), prefixes, )
+        bd = bgpData.BGPData(int(stime), itime, prefixes, )
         try:
+            # Read RIB and updates until before the withdraw
             bd.readAllData()
-            bd.saveGraph()
-            bd.saveZombieFile()
+            bd.saveGraph(fname_prefix="normal_paths/normal_")
+            bd.saveZombieFile(fname_prefix="normal_paths/normal_")
+
+            # Read data during withdraw period
+            bd.startts = int(itime)
+            bd.endts = int(etime)
+            bd.readUpdates()
+            bd.saveGraph(fname_prefix="zombie_paths/")
+            bd.saveZombieFile(fname_prefix="zombie_paths/")
+
         except Exception as e:
             logging.error("Error while getting data")
             logging.error(e)

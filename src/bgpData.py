@@ -94,7 +94,7 @@ class BGPData():
         self.readUpdates()
 
 
-    def saveGraph(self):
+    def saveGraph(self, fname_prefix=""):
         for prefix in self.prefixes:
             asgraph = nx.Graph()
 
@@ -104,12 +104,12 @@ class BGPData():
                 for a0, a1 in zip(path[:-1], path[1:]):
                     asgraph.add_edge(a0,a1)
 
-            nx.write_adjlist(asgraph, "graph_%s_%s.txt" % (self.endts ,prefix.replace("/", "_")))
+            nx.write_adjlist(asgraph, "%sgraph_%s_%s.txt" % (fname_prefix, self.endts ,prefix.replace("/", "_")))
 
 
-    def saveZombieFile(self):
+    def saveZombieFile(self, fname_prefix=""):
         for prefix in self.prefixes:
-            with open("zombies_%s_%s.txt" % (self.endts, prefix.replace("/", "_")), "w") as fi:
+            with open("%szombies_%s_%s.txt" % (fname_prefix, self.endts, prefix.replace("/", "_")), "w") as fi:
                 for asn, w in self.withdraws[prefix].items():
                     label = 0
                     if not w:
