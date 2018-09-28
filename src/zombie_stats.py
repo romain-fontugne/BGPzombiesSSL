@@ -12,6 +12,7 @@ import numpy as np
 from rftb import plot as rfplt
 
 esteban_results_directory = "20180623_BGPcount"
+input_graphs = "results/"
 
 def asnres(ip):
     """Find the ASN corresponding to the given IP address"""
@@ -33,7 +34,7 @@ def get_classification_results(ts = 1505287800, prefix = "84.205.67.0/24"):
     if not os.path.exists(fname):
         # No zombie mean that the input was too unbalanced. Use bgp data
         # instead
-        fname = "results/zombies_%s_%s.txt" % (ts, prefix.replace("/", "_"))
+        fname = input_graphs+"zombies_%s_%s.txt" % (ts, prefix.replace("/", "_"))
 
         for line in open(fname):
             asn, zombie = [x for x in line.split()]
@@ -132,6 +133,8 @@ def compute_all_stats():
     plt.tight_layout()
     plt.savefig("fig/CDF_nb_zombie_per_outbreak.pdf")
 
+
+### Zombie Frequency for all beacons
     asn_zombie_frequency = collections.Counter(itertools.chain.from_iterable(zombies_per_timebin))
     # add normal ASes:
     for asn in set(itertools.chain.from_iterable(normal_per_timebin)):
@@ -150,9 +153,40 @@ def compute_all_stats():
     plt.savefig("fig/CDF_zombie_freq_per_asn.pdf")
     # plt.show()
 
-    from efficient_apriori import apriori
+### Zombie frequency per beacon
+    all_beacons = set([pfx for pfx_res in all_classification_results.values() for pfx in pfx_res.keys()])
+    plt.figure()
+    print(all_beacons)
+    for pfx in all_beacons: 
+        zombies_per_timebin_per_beacon = [set([asn for asn in pfx_res[pfx]["zombie"]]) 
+            for ts, pfx_res in all_classification_results.items() if pfx in pfx_res]
 
-    itemsets, rules = apriori(zombies_per_timebin, min_support=0.3, min_confidence=1)
+        asn_zombie_frequency = collections.Counter(itertools.chain.from_iterable(zombies_per_timebin_per_beacon))
+        # add normal ASes:
+        for asn in set(itertools.chain.from_iterable(normal_per_timebin)):
+            if not asn in asn_zombie_frequency:
+                asn_zombie_frequency[asn]=0
+
+        print("Top 10 zombie ASN for {}: ".format(pfx))
+        for asn, freq in asn_zombie_frequency.most_common(10):
+            print("\t AS{}: {:.02f}% ({} times)".format(asn, 100*freq/len(zombies_per_timebin_per_beacon), freq))
+
+        rfplt.ecdf(np.array(list(asn_zombie_frequency.values()))/len(zombies_per_timebin_per_beacon), label=pfx)
+        plt.xlabel("freq. AS as zombie/total nb. of outbreaks")
+        plt.ylabel("CDF")
+        plt.legend(loc="best", prop={"size":8}, ncol=2)
+        plt.tight_layout()
+        plt.savefig("fig/CDF_zombie_freq_per_asn_per_beacon.pdf")
+        # plt.show()
+
+
+
+
+
+
+    # from efficient_apriori import apriori
+
+    # itemsets, rules = apriori(zombies_per_timebin, min_support=0.3, min_confidence=1)
     # print(zombies_per_timebin)
     # for nb_elem, items in itemsets.items():
         # if nb_elem > 1:
@@ -161,6 +195,31 @@ def compute_all_stats():
 
     # rules_rhs = filter(lambda rule: len(rule.lhs)==1 and len(rule.rhs)>4, rules)
     # print(list(rules_rhs))
+
+
+    nb_outbreak_per_prefix = defaultdict(int)
+    for ts, events in all_classification_results.items():
+        for prefix, classification in events.items():
+            nb_outbreak_per_prefix[prefix] += 1
+
+    print(nb_outbreak_per_prefix)
+    plt.figure()
+    plt.hist(list(nb_outbreak_per_prefix.values()))
+    plt.xlabel("Number of outbreaks per beacon")
+    plt.ylabel("Number of beacons")
+    plt.tight_layout()
+    plt.savefig("fig/hist_nb_outbreak_per_prefix.pdf")
+
+
+    nb_beacon_per_ts = {ts: len(events) for ts, events in all_classification_results.items()}
+    print(nb_beacon_per_ts)
+
+    plt.figure()
+    rfplt.ecdf(list(nb_beacon_per_ts.values()))
+    plt.xlabel("Number of simultaneous outbreaks")
+    plt.ylabel("CDF")
+    plt.tight_layout()
+    plt.savefig("fig/CDF_nb_simult_zombie.pdf")
 
 if __name__ == "__main__":
     compute_all_stats()    
