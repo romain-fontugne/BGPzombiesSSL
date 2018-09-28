@@ -54,12 +54,12 @@ def getBGPdata( params ):
 # endtime = 1536710400
 
 # 2017/10 and 2017/12
-# starttime = 1506816000
-# endtime = 1514764800
+starttime = 1506816000
+endtime = 1514764800
 
 # 2017/03 and 2017/04
-starttime = 1488326400
-endtime = 1493596800
+#starttime = 1488326400
+#endtime = 1493596800
 
 
 FORMAT = '%(asctime)s %(processName)s %(message)s'
@@ -86,6 +86,7 @@ aggEvents = defaultdict(list)
 for msmid, desc in events.items():
     aggEvents[1800+int(desc["start"]/3600)*3600].append( (desc["prefix"],) )
 
+logging.info("%s events to analyze" % (len(aggEvents)))
 # map(getBGPdata, aggEvents.items())
 proc.map(getBGPdata, aggEvents.items())
 
