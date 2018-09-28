@@ -34,6 +34,8 @@ def getBGPdata( params ):
             bd.readAllData()
             bd.saveGraph(fname_prefix="normal_paths/normal_")
             bd.saveZombieFile(fname_prefix="normal_paths/normal_")
+            with open("normal_paths/normal_bgpdata_%s.pickle" % (bd.endts,), "wb") as fi:
+                pickle.dump(bd, fi)
 
             # Read data during withdraw period
             bd.startts = int(itime)
@@ -41,6 +43,8 @@ def getBGPdata( params ):
             bd.readUpdates()
             bd.saveGraph(fname_prefix="zombie_paths/")
             bd.saveZombieFile(fname_prefix="zombie_paths/")
+            with open("zombie_paths/bgpdata_%s.pickle" % (bd.endts,), "wb") as fi:
+                pickle.dump(bd, fi)
 
         except Exception as e:
             logging.error("Error while getting data")
