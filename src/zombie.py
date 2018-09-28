@@ -2,6 +2,7 @@ import os
 import pickle
 import logging
 import sys
+import arrow
 from datetime import datetime
 
 import tracerouteData
@@ -16,7 +17,7 @@ def getBGPdata( params ):
     prefixes = params[1][0]
 
     if not os.path.exists("zombie_paths/zombies_{}_{}.txt".format(etime, prefixes[-1].replace("/","_"))):
-        tmpdate = datetime.utcfromtimestamp(etime) 
+        tmpdate = arrow.get(etime) 
         tmpdate = tmpdate.replace(minute = 0, second = 0)
         if tmpdate.hour < 8:
             tmpdate = tmpdate.replace(hour=0)
@@ -25,7 +26,7 @@ def getBGPdata( params ):
         else:
             tmpdate = tmpdate.replace(hour=16)
 
-        stime = time.mktime(tmpdate.timetuple())
+        stime = tmpdate.timestamp
         itime = int(etime)-(60*60*2)
 
         bd = bgpData.BGPData(int(stime), itime, prefixes, )
