@@ -23,7 +23,7 @@ def getBGPdata( params ):
             tmpdate.replace(hour=8)
         else:
             tmpdate.replace(hour=16)
-            tmpdate.replace(minute = 0, second = 0)
+        tmpdate.replace(minute = 0, second = 0)
 
         stime = time.mktime(tmpdate.timetuple())
 
@@ -74,7 +74,7 @@ else:
 # Group events by timestamp and prefix
 aggEvents = defaultdict(list)
 for msmid, desc in events.items():
-    aggEvents[1800+(desc["start"]/3600)*3600].append( (desc["prefix"],) )
+    aggEvents[1800+int(desc["start"]/3600)*3600].append( (desc["prefix"],) )
 
 # map(getBGPdata, aggEvents.items())
 proc.map(getBGPdata, aggEvents.items())
