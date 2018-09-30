@@ -55,7 +55,7 @@ class TracerouteData():
         self.getMsmIds()
         logging.info("Found {} msms".format(len(self.msms)))
         logging.info("Fetching traceroute results...")
-        self.getTraceroutes()
+        # self.getTraceroutes()
         logging.info("Save events...")
         self.listEvents()
 
@@ -72,22 +72,21 @@ class TracerouteData():
             prb_ips = set()
             prb_ids = set()
             endtimes = set()
-            if msm["id"] not in self.traceroutes:
+            if msm["id"] in self.traceroutes:
                 logging.warn("No traceroutes for msm %s " % msm["id"])
-                continue
 
-            for trace in self.traceroutes[msm["id"]]:
-                endtimes.add(trace["endtime"])
-                prb_ips.add(trace["from"])
-                prb_ids.add(trace["prb_id"])
-                for hop in trace["result"]:
-                    if "result" in hop:
-                        for router in hop["result"]:
-                            if "from" in router:
-                                if "err" not in router:
-                                    zombies.add(router["from"])
-                                else:
-                                    clean.add(router["from"])
+                for trace in self.traceroutes[msm["id"]]:
+                    endtimes.add(trace["endtime"])
+                    prb_ips.add(trace["from"])
+                    prb_ids.add(trace["prb_id"])
+                    for hop in trace["result"]:
+                        if "result" in hop:
+                            for router in hop["result"]:
+                                if "from" in router:
+                                    if "err" not in router:
+                                        zombies.add(router["from"])
+                                    else:
+                                        clean.add(router["from"])
 
             if "." in msm["target_ip"]: 
                 prefix = msm["target_ip"].rpartition(".")[0]+".0/24"
