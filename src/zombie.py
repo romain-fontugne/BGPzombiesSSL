@@ -14,25 +14,27 @@ from multiprocessing import Pool
 
 def getBGPdata( params ):
     etime = int(params[0])
-    prefixes = params[1][0]
+    prefixes = list(params[1])
 
     if not os.path.exists("zombie_paths/zombies_{}_{}.txt".format(etime, prefixes[-1].replace("/","_"))):
-        tmpdate = arrow.get(etime) 
-        tmpdate = tmpdate.replace(minute = 0, second = 0)
-        if tmpdate.hour < 8:
-            tmpdate = tmpdate.replace(hour=0)
-        elif tmpdate.hour < 16:
-            tmpdate = tmpdate.replace(hour=8)
-        else:
-            tmpdate = tmpdate.replace(hour=16)
+        #tmpdate = arrow.get(etime) 
+        #tmpdate = tmpdate.replace(minute = 0, second = 0)
+        #if tmpdate.hour < 8:
+            #tmpdate = tmpdate.replace(hour=0)
+        #elif tmpdate.hour < 16:
+            #tmpdate = tmpdate.replace(hour=8)
+        #else:
+            #tmpdate = tmpdate.replace(hour=16)
 
-        stime = tmpdate.timestamp
+        #stime = tmpdate.timestamp
+        stime = int(etime)-(60*60*4)
         itime = int(etime)-(60*60*2)
 
         bd = bgpData.BGPData(int(stime), itime, prefixes, )
         try:
             # Read RIB and updates until before the withdraw
-            bd.readAllData()
+            #bd.readAllData()
+            bd.readUpdates()
             bd.saveGraph(fname_prefix="normal_paths/normal_")
             bd.saveZombieFile(fname_prefix="normal_paths/normal_")
             with open("normal_paths/normal_bgpdata_%s.pickle" % (bd.endts,), "wb") as fi:
@@ -59,8 +61,8 @@ starttime = 1531958400
 endtime = 1537401600
 
 # 2017/10 and 2017/12
-# starttime = 1506816000
-# endtime = 1514764800
+#starttime = 1506816000
+#endtime = 1514764800
 
 # 2017/03 and 2017/04
 #starttime = 1488326400
@@ -71,7 +73,7 @@ FORMAT = '%(asctime)s %(processName)s %(message)s'
 logging.basicConfig(format=FORMAT, filename='zombie_%s.log' % starttime, level=logging.DEBUG, datefmt='%Y-%m-%d %H:%M:%S')
 logging.info("Started: %s" % sys.argv)
 
-proc = Pool(32)
+proc = Pool(24)
 
 # Retrieve zombies found by Emile
 if os.path.exists("events_%s_%s.pickle" % (starttime, endtime)):
@@ -87,9 +89,9 @@ else:
         pickle.dump(td,fi)
 
 # Group events by timestamp and prefix
-aggEvents = defaultdict(list)
+aggEvents = defaultdict(set)
 for msmid, desc in events.items():
-    aggEvents[1800+int(desc["start"]/3600)*3600].append( (desc["prefix"],) )
+    aggEvents[1800+int(desc["start"]/3600)*3600].add( desc["prefix"] )
 
 logging.info("%s events to analyze" % (len(aggEvents)))
 # map(getBGPdata, aggEvents.items())
