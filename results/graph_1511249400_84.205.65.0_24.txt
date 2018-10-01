@@ -1,3 +1,0 @@
-#src/zombie.py
-# GMT Thu May 10 13:34:11 2018
-# 

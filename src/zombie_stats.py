@@ -22,6 +22,14 @@ def asnres(ip):
         asn="0"
     return str(asn)
 
+
+def nbOutbreak(e):
+    af = set([str(int(event["start"]/3600))+event["prefix"].rpartition("/")[2] for event in e.values()])
+    count = Counter([e[-2:] for e in af])
+    print(count)
+    return count
+
+
 def get_classification_results(ts = 1505287800, prefix = "84.205.67.0/24"):
     """Return infered zombie (and normal) ASN.
     """    
