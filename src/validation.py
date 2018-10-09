@@ -12,7 +12,7 @@ sys.path.append("../ip2asn")
 import ip2asn
 
 ia = ip2asn.ip2asn("../ip2asn/db/rib.20180201.pickle")
-esteban_results_directory = "20180623_BGPcount"
+esteban_results_directory = "20181001_BGPcount"
 
 def asnres(ip):
     """Find the ASN corresponding to the given IP address"""
@@ -32,11 +32,16 @@ def validation(ts = 1505287800, prefix = "84.205.67.0/24"):
     traceroutes and BGP are inconsistent, and gray means unknown)"""
 
     print("Processing %s %s..." % (ts, prefix))
-    fname = "results/graph_%s_%s.txt" % (ts, prefix.replace("/", "_"))
+    fname = "zombie_paths/graph_%s_%s.txt" % (ts, prefix.replace("/", "_"))
     G = nx.read_adjlist(fname)
 
     ##### Traceroute data #####
-    events = pickle.load(open("events.pickle", "rb"))
+    if ts<1500000000:
+        events = pickle.load(open("events_1488326400_1493596800.pickle", "rb"))
+    elif ts<1530000000:
+        events = pickle.load(open("../events_1506816000_1514764800.pickle", "rb"))
+    else:
+        events = pickle.load(open("../events_1531958400_1537401600.pickle", "rb"))
 
     ztr = set()
     ntr = set()
@@ -61,7 +66,7 @@ def validation(ts = 1505287800, prefix = "84.205.67.0/24"):
         ntr.remove("0")
 
     ##### BGP data #####
-    fname = "results/zombies_%s_%s.txt" % (ts, prefix.replace("/", "_"))
+    fname = "zombie_paths/zombies_%s_%s.txt" % (ts, prefix.replace("/", "_"))
 
     zbgp = set()
     nbgp = set()
@@ -190,7 +195,7 @@ if __name__ == "__main__":
     if len(sys.argv) == 1:
         pool = multiprocessing.Pool()
         params = []
-        for i, path in enumerate(glob.glob("20180623_BGPcount/*_24")):
+        for i, path in enumerate(glob.glob(esteban_results_directory+"/*_24")):
             dname = path.rpartition("/")[2]
             ts, _, prefix = dname.partition("_")
             prefix = prefix.replace("_","/")

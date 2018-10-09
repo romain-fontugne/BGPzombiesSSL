@@ -11,8 +11,8 @@ import datetime
 import numpy as np
 from rftb import plot as rfplt
 
-esteban_results_directory = "20180623_BGPcount"
-input_graphs = "results/"
+esteban_results_directory = "20181001_BGPcount/"
+input_graphs = "zombie_paths/"
 
 def asnres(ip):
     """Find the ASN corresponding to the given IP address"""
@@ -29,6 +29,38 @@ def nbOutbreak(e):
     print(count)
     return count
 
+def pathLenComparions(normal_folder="./normal_paths/", zombie_folder="./zombie_paths/"):
+
+    zombie_path_len = []
+    normal_path_for_zombie_len = []
+    normal_path_len = []
+
+    for af in [4,6]:
+        for fname in glob.glob(zombie_folder+"bgpdata_*.pickle"):
+            zombie_data = pickle.load(open(fname, "rb"))
+            fname_normal = fname.replace(zombie_folder, normal_folder).replace("bgpdata","normal_bgpdata")
+            tsz = int(fname_normal.rpartition("_")[2].partition(".")[0])
+            tsn = tsz-3600*2
+            fname_normal = fname_normal.replace(str(tsz), str(tsn))
+            normal_data = pickle.load(open(fname_normal, "rb"))
+
+            for pfx, zombie_withdaws in zombie_data.withdraws.items():
+                if (af == 4 and ":" in pfx) or (af==6 and "." in pfx):
+                    continue
+                for asn, withdrawn in zombie_withdaws.items():
+                    if asn in normal_data.paths[pfx]:
+                        if withdrawn:
+                            normal_path_len.append( len(normal_data.paths[pfx][asn].split(" ")) )
+                        else:
+                            zombie_path_len.append( len(zombie_data.paths[pfx][asn].split(" ")) )
+                            normal_path_for_zombie_len.append( len(normal_data.paths[pfx][asn].split(" ")) )
+
+        plt.figure()
+        rfplt.ecdf(normal_path_for_zombie_len, label="Normal Path (zombie peer)")
+        rfplt.ecdf(normal_path_len, label="Normal Path (normal peer)")
+        rfplt.ecdf(zombie_path_len, label="Zombie Path")
+        plt.legend(loc="best")
+        plt.savefig("fig/CDF_path_length_IPv{}.pdf".format(af))
 
 def get_classification_results(ts = 1505287800, prefix = "84.205.67.0/24"):
     """Return infered zombie (and normal) ASN.
@@ -42,6 +74,7 @@ def get_classification_results(ts = 1505287800, prefix = "84.205.67.0/24"):
     if not os.path.exists(fname):
         # No zombie mean that the input was too unbalanced. Use bgp data
         # instead
+        prefix= prefix.replace("-",":")
         fname = input_graphs+"zombies_%s_%s.txt" % (ts, prefix.replace("/", "_"))
 
         for line in open(fname):
@@ -75,13 +108,18 @@ def get_classification_results(ts = 1505287800, prefix = "84.205.67.0/24"):
     return {"zombie": zombie_asns, "normal": normal_asns}
 
 
-def compute_all_stats():
+def compute_all_stats(af=4):
     """ Fetch all classification results and compute basic stats."""
 
     ### Fetch all results
     all_classification_results = defaultdict(dict)
 
-    for path in glob.glob(esteban_results_directory+"/*_24"):
+    if af == 4:
+        pfx_len = "24"
+    else:
+        pfx_len = "48"
+
+    for path in glob.glob(esteban_results_directory+"/*_"+pfx_len):
         dname = path.rpartition("/")[2]
         ts, _, prefix = dname.partition("_")
         prefix = prefix.replace("_","/")
@@ -89,6 +127,8 @@ def compute_all_stats():
 
         # print("Processing %s %s..." % (ts, prefix))
         asns = get_classification_results(ts, prefix)
+        if asns is not None and len(asns["zombie"])>200:
+            print("Large outbreak: {} {}".format(ts, prefix))
 
         if asns is not None:
             all_classification_results[ts][prefix] = asns
@@ -134,10 +174,11 @@ def compute_all_stats():
             [100*len(z)/(len(z)+len(n)) for z,n in zip(zombies_per_timebin, normal_per_timebin)]
         )))
 
-    plt.figure()
-    rfplt.ecdf(nb_zombie_per_outbreak)
+    plt.figure(1)
+    rfplt.ecdf(nb_zombie_per_outbreak, label="IPv{}".format(af))
     plt.xlabel("Number zombie ASN per outbreak")
     plt.ylabel("CDF")
+    plt.legend(loc="best")
     plt.tight_layout()
     plt.savefig("fig/CDF_nb_zombie_per_outbreak.pdf")
 
@@ -153,17 +194,18 @@ def compute_all_stats():
     for asn, freq in asn_zombie_frequency.most_common(50):
         print("\t AS{}: {:.02f}% ({} times)".format(asn, 100*freq/nb_zombie_timebin, freq))
 
-    plt.figure()
-    rfplt.ecdf(np.array(list(asn_zombie_frequency.values()))/nb_zombie_timebin)
+    plt.figure(2)
+    rfplt.ecdf(np.array(list(asn_zombie_frequency.values()))/nb_zombie_timebin, label="IPv{}".format(af))
     plt.xlabel("freq. AS as zombie/total nb. of outbreaks")
     plt.ylabel("CDF")
+    plt.legend(loc="best")
     plt.tight_layout()
     plt.savefig("fig/CDF_zombie_freq_per_asn.pdf")
     # plt.show()
 
 ### Zombie frequency per beacon
     all_beacons = set([pfx for pfx_res in all_classification_results.values() for pfx in pfx_res.keys()])
-    plt.figure()
+    plt.figure(3)
     print(all_beacons)
     for pfx in all_beacons: 
         zombies_per_timebin_per_beacon = [set([asn for asn in pfx_res[pfx]["zombie"]]) 
@@ -211,23 +253,27 @@ def compute_all_stats():
             nb_outbreak_per_prefix[prefix] += 1
 
     print(nb_outbreak_per_prefix)
-    plt.figure()
-    plt.hist(list(nb_outbreak_per_prefix.values()))
+    plt.figure(4)
+    plt.hist(list(nb_outbreak_per_prefix.values()), label="IPv{}".format(af))
     plt.xlabel("Number of outbreaks per beacon")
     plt.ylabel("Number of beacons")
+    plt.legend(loc="best")
     plt.tight_layout()
     plt.savefig("fig/hist_nb_outbreak_per_prefix.pdf")
 
 
     nb_beacon_per_ts = {ts: len(events) for ts, events in all_classification_results.items()}
-    print(nb_beacon_per_ts)
+    # print(nb_beacon_per_ts)
 
-    plt.figure()
-    rfplt.ecdf(list(nb_beacon_per_ts.values()))
+    plt.figure(5)
+    rfplt.ecdf(list(nb_beacon_per_ts.values()), label="IPv{}".format(af))
     plt.xlabel("Number of simultaneous outbreaks")
     plt.ylabel("CDF")
+    plt.legend(loc="best")
     plt.tight_layout()
     plt.savefig("fig/CDF_nb_simult_zombie.pdf")
 
 if __name__ == "__main__":
-    compute_all_stats()    
+    compute_all_stats(4)    
+    compute_all_stats(6)    
+    pathLenComparions()
