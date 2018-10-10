@@ -32,49 +32,56 @@ def nbOutbreak(e):
 
 def peerZombieLikelihood():
 
-    nb_msm_days = 31+28+31+28+13+31
-    nb_zombie_per_peer = defaultdict(int)
-    nb_clean_per_peer = defaultdict(int)
-    for af, af_pfx in [(4, "24"),(6, "48")]:
-        print("IPv{}".format(af))
-        for fname in glob.glob( input_graphs+"zombies_*_%s.txt" % (af_pfx,)):
-            beacon = fname.split("_")[-2]
-
-            for line in open(fname):
-                asn, zombie = [x for x in line.split()]
-                
-                if int(zombie):
-                    nb_zombie_per_peer[asn+beacon]+=1
-                else:
-                    nb_clean_per_peer[asn+beacon]+=1
-
-
-        ratio_all_zombie = [ nb_zombie_per_peer[asn]/(nb_zombie_per_peer[asn]+nb_clean_per_peer[asn])
-                for asn in set(itertools.chain(nb_zombie_per_peer.keys(), nb_clean_per_peer.keys())) ]
-
-        plt.figure(10)
-        rfplt.ecdf(ratio_all_zombie, label="IPv{}".format(af))
-        plt.ylabel("CDF")
-        plt.xlabel("ratio zombie(asn)/all outbreaks")
-        plt.legend(loc="best")
-        plt.tight_layout()
-        plt.savefig("fig/CDF_ratio_zombieasn_alloutbreaks.pdf")
-
-        print("Ratio to all outbreaks, mean={}, median={}".format(np.mean(ratio_all_zombie),np.median(ratio_all_zombie)))
+    for ts in ["1"]:
         
-        ratio_all_withdraws = [ nb_zombie_per_peer[asn]/(nb_msm_days*6)
-                for asn in set(itertools.chain(nb_zombie_per_peer.keys(), nb_clean_per_peer.keys())) ]
+        for af, af_pfx in [(4, "24"),(6, "48")]:
+            nb_msm_days = 31+28+31+28+13+31
+            nb_zombie_per_peer = defaultdict(int)
+            nb_clean_per_peer = defaultdict(int)
+            print("IPv{}".format(af))
+            for fname in glob.glob( input_graphs+"zombies_{}*_{}.txt".format(ts, af_pfx,)):
+                beacon = fname.split("_")[-2]
 
-        plt.figure(11)
-        rfplt.ecdf(ratio_all_withdraws, label="IPv{}".format(af))
-        plt.ylabel("CDF")
-        plt.xlabel("ratio zombie(asn)/all withdraws")
-        plt.legend(loc="best")
-        plt.tight_layout()
-        plt.savefig("fig/CDF_ratio_zombieasn_allwithdraws.pdf")
+                for line in open(fname):
+                    asn, zombie = [x for x in line.split()]
+                    
+                    if int(zombie):
+                        nb_zombie_per_peer[asn+"_"+beacon]+=1
+                    else:
+                        nb_clean_per_peer[asn+"_"+beacon]+=1
 
-        print("Ratio to all withdraws, mean={}, median={}".format(np.mean(ratio_all_withdraws),np.median(ratio_all_withdraws)))
 
+            ratio_all_zombie = [ nb_zombie_per_peer[asn]/(nb_zombie_per_peer[asn]+nb_clean_per_peer[asn])
+                    for asn in set(itertools.chain(nb_zombie_per_peer.keys(), nb_clean_per_peer.keys())) ]
+
+            plt.figure(10)
+            rfplt.ecdf(ratio_all_zombie, label="IPv{}".format(af))
+            plt.ylabel("CDF")
+            plt.xlabel("ratio zombie(peer)/all outbreaks")
+            plt.legend(loc="best")
+            plt.tight_layout()
+            plt.savefig("fig/CDF_ratio_zombieasn_alloutbreaks.pdf")
+
+            print("Ratio to all outbreaks, mean={}, median={}".format(np.mean(ratio_all_zombie),np.median(ratio_all_zombie)))
+            
+            ratio_all_withdraws = [ nb_zombie_per_peer[asn]/(nb_msm_days*6)
+                    for asn in set(itertools.chain(nb_zombie_per_peer.keys(), nb_clean_per_peer.keys())) ]
+
+            plt.figure(11)
+            cdf = rfplt.ecdf(ratio_all_withdraws, label="IPv{}".format(af))
+            plt.ylabel("CDF")
+            plt.xlabel("Zombie Emergence Rate")
+            plt.legend(loc="best")
+            plt.tight_layout()
+            plt.savefig("fig/CDF_ratio_zombieasn_allwithdraws.pdf")
+
+            print("Ratio to all withdraws, mean={}, median={}".format(np.mean(ratio_all_withdraws),np.median(ratio_all_withdraws)))
+
+            print("Max. <peer, beacon>: {} ({} times)".format(
+                max(nb_zombie_per_peer, key=nb_zombie_per_peer.get),
+                max(nb_zombie_per_peer.values())))
+
+            # print(cdf)
 
 
 def pathLenComparions(normal_folder="./normal_paths/", zombie_folder="./zombie_paths/"):
@@ -152,7 +159,7 @@ def get_classification_results(ts = 1505287800, prefix = "84.205.67.0/24"):
     if len(zombie_asns) == 0:
         return None
 
-    if len(zombie_asns) > 40:
+    if len(zombie_asns) > 180:
         print(ts, prefix, end=",", sep=", ")
         print("{} zombies".format(len(zombie_asns)))
 

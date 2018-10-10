@@ -39,9 +39,9 @@ def validation(ts = 1505287800, prefix = "84.205.67.0/24"):
     if ts<1500000000:
         events = pickle.load(open("events_1488326400_1493596800.pickle", "rb"))
     elif ts<1530000000:
-        events = pickle.load(open("../events_1506816000_1514764800.pickle", "rb"))
+        events = pickle.load(open("events_1506816000_1514764800.pickle", "rb"))
     else:
-        events = pickle.load(open("../events_1531958400_1537401600.pickle", "rb"))
+        events = pickle.load(open("events_1531958400_1537401600.pickle", "rb"))
 
     ztr = set()
     ntr = set()

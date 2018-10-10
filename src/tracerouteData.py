@@ -55,7 +55,7 @@ class TracerouteData():
         self.getMsmIds()
         logging.info("Found {} msms".format(len(self.msms)))
         logging.info("Fetching traceroute results...")
-        # self.getTraceroutes()
+        self.getTraceroutes()
         logging.info("Save events...")
         self.listEvents()
 
