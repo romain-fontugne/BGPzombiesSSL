@@ -187,14 +187,16 @@ def compute_all_stats(af=4):
     ### Temporal characteristics
     ts_start = min(all_classification_results.keys())
     ts_end = max(all_classification_results.keys())
-    duration = (ts_end - ts_start)/3600
+    # duration = (ts_end - ts_start)/3600 #hours
+    # nb_withdraws = duration/4
+    duration = 31+28+31+28+13+31 #days
+    nb_withdraws = duration*6
     
     print("First zombie detected at {} and last one at {}".format(
         datetime.datetime.utcfromtimestamp(ts_start),
         datetime.datetime.utcfromtimestamp(ts_end)
         ))
     
-    nb_withdraws = duration/4
     nb_zombie_timebin = len(all_classification_results.keys())
 
     perc_zombie_timebins = nb_zombie_timebin/nb_withdraws*100
