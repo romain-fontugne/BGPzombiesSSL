@@ -235,15 +235,17 @@ def compute_all_stats(af=4):
         )))
 
     plt.figure(1)
-    rfplt.ecdf(nb_zombie_per_outbreak, label="IPv{}".format(af))
+    cdf = rfplt.ecdf(nb_zombie_per_outbreak, label="IPv{}".format(af))
     plt.xlabel("Number zombie ASN per outbreak")
     plt.ylabel("CDF")
     plt.legend(loc="best")
     plt.tight_layout()
     plt.savefig("fig/CDF_nb_zombie_per_outbreak.pdf")
+    print("CDF nb. ASes per outbreak:")
+    print(cdf)
 
 
-### Zombie Frequency for all beacons
+    ### Zombie Frequency for all beaconss
     asn_zombie_frequency = collections.Counter(itertools.chain.from_iterable(zombies_per_timebin))
     # add normal ASes:
     for asn in set(itertools.chain.from_iterable(normal_per_timebin)):
@@ -263,6 +265,28 @@ def compute_all_stats(af=4):
     plt.savefig("fig/CDF_zombie_freq_per_asn.pdf")
     # plt.show()
 
+    unique_pairs = [set([asn+"_"+pfx for pfx, res in pfx_res.items() for asn in res["zombie"]]) 
+            for ts, pfx_res in all_classification_results.items()]
+    zombie_emergence = collections.Counter(itertools.chain.from_iterable(unique_pairs))
+    plt.figure(22)
+    rfplt.ecdf(np.array(list(zombie_emergence.values()))/nb_withdraws, label="IPv{}".format(af))
+    plt.xlabel("Zombie Emergence Rate")
+    plt.ylabel("CDF")
+    plt.legend(loc="best")
+    plt.tight_layout()
+    plt.savefig("fig/CDF_zombie_emergence_per_asn.pdf")
+    # plt.show()
+
+    print("Max. <ASN, beacon>: {} ({} times)".format(
+        max(zombie_emergence, key=zombie_emergence.get),
+        max(zombie_emergence.values())))
+    print("number of outbreaks: {}".format(nb_zombie_timebin))
+
+    for key, freq in zombie_emergence.items():
+        if freq>590:
+            print("High. <ASN, beacon>: {} ({} times)".format(key, freq))
+
+
 ### Zombie frequency per beacon
     all_beacons = set([pfx for pfx_res in all_classification_results.values() for pfx in pfx_res.keys()])
     plt.figure(3)
@@ -277,9 +301,9 @@ def compute_all_stats(af=4):
             if not asn in asn_zombie_frequency:
                 asn_zombie_frequency[asn]=0
 
-        print("Top 10 zombie ASN for {}: ".format(pfx))
-        for asn, freq in asn_zombie_frequency.most_common(10):
-            print("\t AS{}: {:.02f}% ({} times)".format(asn, 100*freq/len(zombies_per_timebin_per_beacon), freq))
+        # print("Top 10 zombie ASN for {}: ".format(pfx))
+        # for asn, freq in asn_zombie_frequency.most_common(10):
+            # print("\t AS{}: {:.02f}% ({} times)".format(asn, 100*freq/len(zombies_per_timebin_per_beacon), freq))
 
         rfplt.ecdf(np.array(list(asn_zombie_frequency.values()))/len(zombies_per_timebin_per_beacon), label=pfx)
         plt.xlabel("freq. AS as zombie/total nb. of outbreaks")
