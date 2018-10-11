@@ -10,6 +10,7 @@ import itertools
 import datetime
 import numpy as np
 from rftb import plot as rfplt
+import requests
 
 esteban_results_directory = "20181001_BGPcount/"
 input_graphs = "zombie_paths/"
@@ -165,12 +166,45 @@ def get_classification_results(ts = 1505287800, prefix = "84.205.67.0/24"):
 
     return {"zombie": zombie_asns, "normal": normal_asns}
 
+def get_hegemony(asns, af):
+
+    if os.path.exists("hegemony_cache.pickle"):
+        return pickle.load(open("hegemony_cache.pickle", "rb"))
+
+    hegemony_scores = defaultdict(int)
+    url = 'https://ihr.iijlab.net/ihr/api/hegemony/'
+
+    for asn in asns:
+        params = dict(
+            asn=asn,
+            originasn=0,
+            timebin='2018-03-10T00:00',
+            af=af,
+        )
+
+        resp = requests.get(url=url, params=params)
+        data = resp.json() # Check the JSON Response Content documentation below
+        if "results" in data and len(data["results"])>0:
+            hege = data["results"][0]
+        else:
+            print(resp)
+            print("Couldn't get hegemony for {}".format(params))
+
+
+        hegemony_scores[hege["asn"]] = hege["hege"]
+
+    pickle.dump(hegemony_scores, open("hegemony_cache.pickle", "wb"))
+
+    return hegemony_scores
+
+
 
 def compute_all_stats():
     """ Fetch all classification results and compute basic stats."""
 
     h_x = []
     h_label = []
+
 
     ### Fetch all results
     for af, pfx_len in [(4, "24"),(6, "48")]:
@@ -189,6 +223,37 @@ def compute_all_stats():
 
             if asns is not None:
                 all_classification_results[ts][prefix] = asns
+
+        ### AS hegemony
+        if af == 4:
+            all_zombies = set([asn for pfx_res in all_classification_results.values() 
+                for res in pfx_res.values() for asn in res["zombie"]])
+            hegemony = get_hegemony(all_zombies, af)
+            max_hege = []
+            outbreak_size = []
+            for ts, pfx_res in all_classification_results.items():
+                for pfx, res in pfx_res.items():
+                    # for zombie in res["zombie"]:
+                        hege = [hegemony[int(zombie)] for zombie in res["zombie"]]
+                        max_hege.append(max(hege))
+                        # max_hege.append(np.log(hegemony[int(zombie)]))
+                        
+                        if max_hege[-1] == 0:
+                            max_hege[-1] = min(hegemony.values())
+                            print("max hege = 0! {}".format(res["zombie"]))
+                        outbreak_size.append(len(res["zombie"]))
+
+
+            color_map = plt.cm.Spectral_r
+            plt.figure(100)
+            heatmap = plt.hexbin(max_hege, outbreak_size, cmap=color_map, 
+                    mincnt=1, bins="log", gridsize=30, xscale="log")
+            plt.xlabel("Max. AS Hegemony")
+            plt.ylabel("Outbreak size")
+            cb = plt.colorbar(heatmap, spacing='uniform', extend='max')
+            plt.tight_layout()
+            plt.savefig("fig/hege_outbreaksize.pdf")
+
 
         ### Temporal characteristics
         ts_start = min(all_classification_results.keys())
@@ -234,24 +299,27 @@ def compute_all_stats():
             )))
 
         plt.figure(1)
-        rfplt.ecdf(nb_zombie_per_outbreak, label="IPv{}".format(af))
-        plt.xlabel("Number zombie ASN per outbreak")
+        cdf = rfplt.ecdf(nb_zombie_per_outbreak, label="IPv{}".format(af))
+        plt.xlabel("Outbreak size")
         plt.ylabel("CDF")
         plt.legend(loc="best")
         plt.tight_layout()
         plt.savefig("fig/CDF_nb_zombie_per_outbreak.pdf")
+        print("CDF nb. ASes per outbreak:")
+        print(cdf)
 
 
     ### Zombie Frequency for all beacons
         asn_zombie_frequency = collections.Counter(itertools.chain.from_iterable(zombies_per_timebin))
+
         # add normal ASes:
         for asn in set(itertools.chain.from_iterable(normal_per_timebin)):
             if not asn in asn_zombie_frequency:
                 asn_zombie_frequency[asn]=0
 
-        # print("Top 50 zombie ASN: ")
-        # for asn, freq in asn_zombie_frequency.most_common(50):
-            # print("\t AS{}: {:.02f}% ({} times)".format(asn, 100*freq/nb_zombie_timebin, freq))
+        print("Top 50 zombie ASN: ")
+        for asn, freq in asn_zombie_frequency.most_common(50):
+            print("\t AS{}: {:.02f}% ({} times)".format(asn, 100*freq/nb_zombie_timebin, freq))
 
         plt.figure(2)
         rfplt.ecdf(np.array(list(asn_zombie_frequency.values()))/nb_zombie_timebin, label="IPv{}".format(af))
@@ -261,6 +329,28 @@ def compute_all_stats():
         plt.tight_layout()
         plt.savefig("fig/CDF_zombie_freq_per_asn.pdf")
         # plt.show()
+
+        unique_pairs = [set([asn+"_"+pfx for pfx, res in pfx_res.items() for asn in res["zombie"]]) 
+                for ts, pfx_res in all_classification_results.items()]
+        zombie_emergence = collections.Counter(itertools.chain.from_iterable(unique_pairs))
+        plt.figure(22)
+        rfplt.ecdf(np.array(list(zombie_emergence.values()))/nb_withdraws, label="IPv{}".format(af))
+        plt.xlabel("Zombie Emergence Rate")
+        plt.ylabel("CDF")
+        plt.legend(loc="best")
+        plt.tight_layout()
+        plt.savefig("fig/CDF_zombie_emergence_per_asn.pdf")
+        # plt.show()
+
+        print("Max. <ASN, beacon>: {} ({} times)".format(
+            max(zombie_emergence, key=zombie_emergence.get),
+            max(zombie_emergence.values())))
+        print("number of outbreaks: {}".format(nb_zombie_timebin))
+
+        for key, freq in zombie_emergence.items():
+            if freq>590:
+                print("High. <ASN, beacon>: {} ({} times)".format(key, freq))
+
 
     ### Zombie frequency per beacon
         all_beacons = set([pfx for pfx_res in all_classification_results.values() for pfx in pfx_res.keys()])
