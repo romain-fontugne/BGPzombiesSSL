@@ -2,6 +2,7 @@ import os
 import logging
 import sys
 from matplotlib import pylab as plt
+plt.switch_backend('agg')
 import glob
 import pickle
 import networkx as nx
@@ -32,7 +33,7 @@ def validation(ts = 1505287800, prefix = "84.205.67.0/24"):
     traceroutes and BGP are inconsistent, and gray means unknown)"""
 
     print("Processing %s %s..." % (ts, prefix))
-    fname = "zombie_paths/graph_%s_%s.txt" % (ts, prefix.replace("/", "_"))
+    fname = "zombie_paths/graph_%s_%s.txt" % (ts, prefix.replace("/", "_").replace("-",":"))
     G = nx.read_adjlist(fname)
 
     ##### Traceroute data #####
@@ -66,7 +67,7 @@ def validation(ts = 1505287800, prefix = "84.205.67.0/24"):
         ntr.remove("0")
 
     ##### BGP data #####
-    fname = "zombie_paths/zombies_%s_%s.txt" % (ts, prefix.replace("/", "_"))
+    fname = "zombie_paths/zombies_%s_%s.txt" % (ts, prefix.replace("/", "_").replace("-",":"))
 
     zbgp = set()
     nbgp = set()
@@ -195,7 +196,7 @@ if __name__ == "__main__":
     if len(sys.argv) == 1:
         pool = multiprocessing.Pool()
         params = []
-        for i, path in enumerate(glob.glob(esteban_results_directory+"/*_24")):
+        for i, path in enumerate(glob.glob(esteban_results_directory+"/*_48")):
             dname = path.rpartition("/")[2]
             ts, _, prefix = dname.partition("_")
             prefix = prefix.replace("_","/")

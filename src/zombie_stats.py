@@ -2,6 +2,7 @@ import os
 import logging
 import sys
 from matplotlib import pylab as plt
+plt.switch_backend('agg')
 import glob
 import pickle
 from collections import defaultdict
@@ -130,21 +131,7 @@ def get_classification_results(ts = 1505287800, prefix = "84.205.67.0/24"):
 
     zombie_asns = set()
     normal_asns = set()
-    if not os.path.exists(fname):
-        # No zombie mean that the input was too unbalanced. Use bgp data
-        # instead
-        prefix= prefix.replace("-",":")
-        fname = input_graphs+"zombies_%s_%s.txt" % (ts, prefix.replace("/", "_"))
-
-        for line in open(fname):
-            asn, zombie = [x for x in line.split()]
-            
-            if int(zombie):
-                zombie_asns.add(asn)
-            else:
-                normal_asns.add(asn)
-
-    else:
+    if os.path.exists(fname):
         for i, line in enumerate(open(fname)):
             # skip the header
             if i ==0:
@@ -158,7 +145,19 @@ def get_classification_results(ts = 1505287800, prefix = "84.205.67.0/24"):
                 normal_asns.add(asn)
 
     if len(zombie_asns) == 0:
-        return None
+        # No zombie mean that the input was too unbalanced. Use bgp data
+        # instead
+        prefix= prefix.replace("-",":")
+        fname = input_graphs+"zombies_%s_%s.txt" % (ts, prefix.replace("/", "_"))
+
+        for line in open(fname):
+            asn, zombie = [x for x in line.split()]
+            
+            if int(zombie):
+                zombie_asns.add(asn)
+            else:
+                normal_asns.add(asn)
+
 
     if len(zombie_asns) > 180:
         print(ts, prefix, end=",", sep=", ")
@@ -168,8 +167,8 @@ def get_classification_results(ts = 1505287800, prefix = "84.205.67.0/24"):
 
 def get_hegemony(asns, af):
 
-    if os.path.exists("hegemony_cache.pickle"):
-        return pickle.load(open("hegemony_cache.pickle", "rb"))
+    if os.path.exists("hegemony_ipv{}_cache.pickle".format(af)):
+        return pickle.load(open("hegemony_ipv{}_cache.pickle".format(af), "rb"))
 
     hegemony_scores = defaultdict(int)
     url = 'https://ihr.iijlab.net/ihr/api/hegemony/'
@@ -186,14 +185,14 @@ def get_hegemony(asns, af):
         data = resp.json() # Check the JSON Response Content documentation below
         if "results" in data and len(data["results"])>0:
             hege = data["results"][0]
+            hegemony_scores[hege["asn"]] = hege["hege"]
         else:
             print(resp)
             print("Couldn't get hegemony for {}".format(params))
 
 
-        hegemony_scores[hege["asn"]] = hege["hege"]
 
-    pickle.dump(hegemony_scores, open("hegemony_cache.pickle", "wb"))
+    pickle.dump(hegemony_scores, open("hegemony_ipv{}_cache.pickle".format(af), "wb"))
 
     return hegemony_scores
 
@@ -207,10 +206,17 @@ def compute_all_stats():
 
 
     ### Fetch all results
+    # timestamp_prefix = "14"
+    # timestamp_prefix = "15[1,2]"
+    # timestamp_prefix = "153"
+    timestamp_prefix = "1"
     for af, pfx_len in [(4, "24"),(6, "48")]:
         all_classification_results = defaultdict(dict)
 
-        for path in glob.glob(esteban_results_directory+"/*_"+pfx_len):
+        countNone = 0
+        all_files = glob.glob(esteban_results_directory+"/{}*_{}".format(timestamp_prefix, pfx_len))
+        print("Reading {} input files...".format(len(all_files)))
+        for path in all_files:
             dname = path.rpartition("/")[2]
             ts, _, prefix = dname.partition("_")
             prefix = prefix.replace("_","/")
@@ -223,36 +229,44 @@ def compute_all_stats():
 
             if asns is not None:
                 all_classification_results[ts][prefix] = asns
+            else:
+                countNone +=1
+
+
+        nb_outbreak = sum([len(pfx_res.keys()) for ts, pfx_res in all_classification_results.items()])
+        print("number of outbreaks: {}".format(nb_outbreak))
+        print("number of ts: {}".format(len(all_classification_results)))
+        print("number of nones: {}".format(countNone))
 
         ### AS hegemony
-        if af == 4:
-            all_zombies = set([asn for pfx_res in all_classification_results.values() 
-                for res in pfx_res.values() for asn in res["zombie"]])
-            hegemony = get_hegemony(all_zombies, af)
-            max_hege = []
-            outbreak_size = []
-            for ts, pfx_res in all_classification_results.items():
-                for pfx, res in pfx_res.items():
-                    # for zombie in res["zombie"]:
-                        hege = [hegemony[int(zombie)] for zombie in res["zombie"]]
-                        max_hege.append(max(hege))
-                        # max_hege.append(np.log(hegemony[int(zombie)]))
-                        
-                        if max_hege[-1] == 0:
-                            max_hege[-1] = min(hegemony.values())
-                            print("max hege = 0! {}".format(res["zombie"]))
-                        outbreak_size.append(len(res["zombie"]))
+        # if af == 4:
+        all_zombies = set([asn for pfx_res in all_classification_results.values() 
+            for res in pfx_res.values() for asn in res["zombie"]])
+        hegemony = get_hegemony(all_zombies, af)
+        max_hege = []
+        outbreak_size = []
+        for ts, pfx_res in all_classification_results.items():
+            for pfx, res in pfx_res.items():
+                # for zombie in res["zombie"]:
+                    hege = [hegemony[int(zombie)] for zombie in res["zombie"]]
+                    max_hege.append(max(hege))
+                    # max_hege.append(np.log(hegemony[int(zombie)]))
+                    
+                    if max_hege[-1] == 0:
+                        max_hege[-1] = min(hegemony.values())
+                        print("max hege = 0! {}".format(res["zombie"]))
+                    outbreak_size.append(len(res["zombie"]))
 
 
-            color_map = plt.cm.Spectral_r
-            plt.figure(100)
-            heatmap = plt.hexbin(max_hege, outbreak_size, cmap=color_map, 
-                    mincnt=1, bins="log", gridsize=30, xscale="log")
-            plt.xlabel("Max. AS Hegemony")
-            plt.ylabel("Outbreak size")
-            cb = plt.colorbar(heatmap, spacing='uniform', extend='max')
-            plt.tight_layout()
-            plt.savefig("fig/hege_outbreaksize.pdf")
+        color_map = plt.cm.Spectral_r
+        plt.figure(100+af)
+        heatmap = plt.hexbin(max_hege, outbreak_size, cmap=color_map, 
+                mincnt=1, bins="log", gridsize=30, xscale="log")
+        plt.xlabel("Max. AS Hegemony")
+        plt.ylabel("Outbreak size")
+        cb = plt.colorbar(heatmap, spacing='uniform', extend='max')
+        plt.tight_layout()
+        plt.savefig("fig/hege_outbreaksize_ipv{}.pdf".format(af))
 
 
         ### Temporal characteristics
@@ -309,7 +323,7 @@ def compute_all_stats():
         print(cdf)
 
 
-    ### Zombie Frequency for all beacons
+        # Zombie Frequency for all beacons
         asn_zombie_frequency = collections.Counter(itertools.chain.from_iterable(zombies_per_timebin))
 
         # add normal ASes:
@@ -317,9 +331,15 @@ def compute_all_stats():
             if not asn in asn_zombie_frequency:
                 asn_zombie_frequency[asn]=0
 
-        print("Top 50 zombie ASN: ")
-        for asn, freq in asn_zombie_frequency.most_common(50):
-            print("\t AS{}: {:.02f}% ({} times)".format(asn, 100*freq/nb_zombie_timebin, freq))
+        nb_outbreak = sum([len(pfx_res.keys()) for ts, pfx_res in all_classification_results.items()])
+        all_zombies = [[asn for pfx, res in pfx_res.items() for asn in res["zombie"]] 
+                for ts, pfx_res in all_classification_results.items()]
+        all_asn_zombie_frequency = collections.Counter(itertools.chain.from_iterable(all_zombies))
+
+        print("Top zombie transit (nb. outbreak={}): ".format(nb_outbreak))
+        for asn, freq in all_asn_zombie_frequency.most_common(100):
+            if hegemony[int(asn)]>0.001:
+                print("\t AS{}: {:.02f}% ({} times) hegemony={:.03f}".format(asn, 100*freq/nb_outbreak, freq, hegemony[int(asn)]))
 
         plt.figure(2)
         rfplt.ecdf(np.array(list(asn_zombie_frequency.values()))/nb_zombie_timebin, label="IPv{}".format(af))
@@ -430,9 +450,9 @@ def compute_all_stats():
         print(cdf)
         print(max(nb_beacon_per_ts, key=nb_beacon_per_ts.get))
 
-        for ts, val in nb_beacon_per_ts.items():
-            if val==13:
-                print(ts)
+        # for ts, val in nb_beacon_per_ts.items():
+            # if val==13:
+                # print(ts)
 
 if __name__ == "__main__":
     compute_all_stats()    
