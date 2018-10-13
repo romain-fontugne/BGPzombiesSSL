@@ -52,9 +52,10 @@ def peerZombieLikelihood():
                     else:
                         nb_clean_per_peer[asn+"_"+beacon]+=1
 
-
             ratio_all_zombie = [ nb_zombie_per_peer[asn]/(nb_zombie_per_peer[asn]+nb_clean_per_peer[asn])
                     for asn in set(itertools.chain(nb_zombie_per_peer.keys(), nb_clean_per_peer.keys())) ]
+
+            print("number of <asn, beacon> pairs: {}".format(len(ratio_all_zombie)))
 
             plt.figure(10)
             rfplt.ecdf(ratio_all_zombie, label="IPv{}".format(af))
@@ -83,7 +84,7 @@ def peerZombieLikelihood():
                 max(nb_zombie_per_peer, key=nb_zombie_per_peer.get),
                 max(nb_zombie_per_peer.values())))
 
-            # print(cdf)
+            print(cdf)
 
 
 def pathLenComparions(normal_folder="./normal_paths/", zombie_folder="./zombie_paths/"):
@@ -155,6 +156,8 @@ def get_classification_results(ts = 1505287800, prefix = "84.205.67.0/24"):
             
             if int(zombie):
                 zombie_asns.add(asn)
+                if asn in normal_asns:
+                    normal_asns.remove(asn)
             else:
                 normal_asns.add(asn)
 
@@ -207,9 +210,9 @@ def compute_all_stats():
 
     ### Fetch all results
     # timestamp_prefix = "14"
-    # timestamp_prefix = "15[1,2]"
+    timestamp_prefix = "15[1,2]"
     # timestamp_prefix = "153"
-    timestamp_prefix = "1"
+    # timestamp_prefix = "1"
     for af, pfx_len in [(4, "24"),(6, "48")]:
         all_classification_results = defaultdict(dict)
 
@@ -231,6 +234,10 @@ def compute_all_stats():
                 all_classification_results[ts][prefix] = asns
             else:
                 countNone +=1
+
+            if "2497" in asns["zombie"] :
+                print("IIJ")
+                print(ts,prefix,len(asns["zombie"]))
 
 
         nb_outbreak = sum([len(pfx_res.keys()) for ts, pfx_res in all_classification_results.items()])
@@ -320,7 +327,7 @@ def compute_all_stats():
         plt.tight_layout()
         plt.savefig("fig/CDF_nb_zombie_per_outbreak.pdf")
         print("CDF nb. ASes per outbreak:")
-        print(cdf)
+        # print(cdf)
 
 
         # Zombie Frequency for all beacons
@@ -337,7 +344,7 @@ def compute_all_stats():
         all_asn_zombie_frequency = collections.Counter(itertools.chain.from_iterable(all_zombies))
 
         print("Top zombie transit (nb. outbreak={}): ".format(nb_outbreak))
-        for asn, freq in all_asn_zombie_frequency.most_common(100):
+        for asn, freq in all_asn_zombie_frequency.most_common(1000):
             if hegemony[int(asn)]>0.001:
                 print("\t AS{}: {:.02f}% ({} times) hegemony={:.03f}".format(asn, 100*freq/nb_outbreak, freq, hegemony[int(asn)]))
 

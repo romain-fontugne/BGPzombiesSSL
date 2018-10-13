@@ -196,7 +196,7 @@ if __name__ == "__main__":
     if len(sys.argv) == 1:
         pool = multiprocessing.Pool()
         params = []
-        for i, path in enumerate(glob.glob(esteban_results_directory+"/*_48")):
+        for i, path in enumerate(glob.glob(esteban_results_directory+"/1512819000*_24")):
             dname = path.rpartition("/")[2]
             ts, _, prefix = dname.partition("_")
             prefix = prefix.replace("_","/")

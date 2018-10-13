@@ -101,3 +101,12 @@ class TracerouteData():
                     "prb_ids": prb_ids,
                     "endtimes": endtimes} 
 
+if __name__ == "__main__":
+    fname = sys.argv[1]
+    td = pickle.load(open(fname, "rb"))
+    td.getTraceroutes()
+    td.listEvents()
+    with open(fname+"_events.pickle","wb") as fi:
+        pickle.dump(td.events,fi)
+    with open(fname+"_traceroute.pickle","wb") as fi:
+        pickle.dump(td,fi)
