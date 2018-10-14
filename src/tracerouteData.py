@@ -1,4 +1,6 @@
 import logging
+import sys
+import pickle
 from ripe.atlas.cousteau import AtlasRequest
 from ripe.atlas.cousteau import AtlasResultsRequest
 
