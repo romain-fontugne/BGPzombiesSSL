@@ -72,7 +72,7 @@ def peerZombieLikelihood():
             plt.figure(11)
             cdf = rfplt.ecdf(ratio_all_withdraws, label="IPv{}".format(af))
             plt.ylabel("CDF")
-            plt.xlabel("Zombie Emergence Rate")
+            plt.xlabel("Zombie emergence rate")
             plt.legend(loc="best")
             plt.tight_layout()
             plt.savefig("fig/CDF_ratio_zombieasn_allwithdraws.pdf")
@@ -93,6 +93,8 @@ def pathLenComparions(normal_folder="./normal_paths/", zombie_folder="./zombie_p
     normal_path_len = []
 
     for af in [4,6]:
+        nb_static_zombie = 0
+        nb_phunthing_zombie = 0
         for fname in glob.glob(zombie_folder+"bgpdata_*.pickle"):
             zombie_data = pickle.load(open(fname, "rb"))
             fname_normal = fname.replace(zombie_folder, normal_folder).replace("bgpdata","normal_bgpdata")
@@ -112,15 +114,24 @@ def pathLenComparions(normal_folder="./normal_paths/", zombie_folder="./zombie_p
                             zombie_path_len.append( len(zombie_data.paths[pfx][asn].split(" ")) )
                             normal_path_for_zombie_len.append( len(normal_data.paths[pfx][asn].split(" ")) )
 
+                            if zombie_data.paths[pfx][asn] == normal_data.paths[pfx][asn]:
+                                nb_static_zombie += 1
+                            else:
+                                nb_phunthing_zombie += 1
+        print("IPv{}: nb static zombie paths: {}, nb zombie with new paths: {} ({}\%)".format(
+            af, nb_static_zombie, nb_phunthing_zombie, nb_phunthing_zombie/(nb_phunthing_zombie+nb_static_zombie)
+            ))
+
         plt.figure()
-        rfplt.ecdf(normal_path_for_zombie_len, label="Normal Path (zombie peer)")
-        rfplt.ecdf(normal_path_len, label="Normal Path (normal peer)")
-        rfplt.ecdf(zombie_path_len, label="Zombie Path")
+        rfplt.ecdf(normal_path_for_zombie_len, label="Normal path (zombie peer)")
+        rfplt.ecdf(normal_path_len, label="Normal path (normal peer)")
+        rfplt.ecdf(zombie_path_len, label="Zombie path")
         plt.legend(loc="best")
         plt.xlabel("AS path length")
         plt.ylabel("CDF")
         plt.tight_layout()
         plt.savefig("fig/CDF_path_length_IPv{}.pdf".format(af))
+
 
 def get_classification_results(ts = 1505287800, prefix = "84.205.67.0/24"):
     """Return infered zombie (and normal) ASN.
@@ -355,7 +366,7 @@ def compute_all_stats():
         zombie_emergence = collections.Counter(itertools.chain.from_iterable(unique_pairs))
         plt.figure(22)
         rfplt.ecdf(np.array(list(zombie_emergence.values()))/nb_withdraws, label="IPv{}".format(af))
-        plt.xlabel("Zombie Emergence Rate")
+        plt.xlabel("Zombie emergence rate")
         plt.ylabel("CDF")
         plt.legend(loc="best")
         plt.tight_layout()
@@ -455,6 +466,6 @@ def compute_all_stats():
                 # print(ts)
 
 if __name__ == "__main__":
-    compute_all_stats()    
+    # compute_all_stats()    
     pathLenComparions()
-    peerZombieLikelihood()
+    # peerZombieLikelihood()
