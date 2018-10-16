@@ -1,4 +1,6 @@
 import logging
+import sys
+import pickle
 from ripe.atlas.cousteau import AtlasRequest
 from ripe.atlas.cousteau import AtlasResultsRequest
 
@@ -101,3 +103,15 @@ class TracerouteData():
                     "prb_ids": prb_ids,
                     "endtimes": endtimes} 
 
+if __name__ == "__main__":
+    fname = sys.argv[1]
+    FORMAT = '%(asctime)s %(processName)s %(message)s'
+    logging.basicConfig(format=FORMAT, filename=fname+'.log', level=logging.DEBUG, datefmt='%Y-%m-%d %H:%M:%S')
+    logging.info("Started: %s" % sys.argv)
+    td = pickle.load(open(fname, "rb"))
+    td.getTraceroutes()
+    td.listEvents()
+    with open(fname+"_events.pickle","wb") as fi:
+        pickle.dump(td.events,fi)
+    with open(fname+"_traceroute.pickle","wb") as fi:
+        pickle.dump(td,fi)
