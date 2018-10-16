@@ -23,7 +23,7 @@ def asnres(ip):
         asn="0"
     return str(asn)
 
-def validation(ts = 1505287800, prefix = "84.205.67.0/24"):
+def validation(events, ts = 1505287800, prefix = "84.205.67.0/24"):
     """Validate SSL results using traceroute data.
     
     Compare SSL results to BGP results and responding IP addresses found in 
@@ -37,12 +37,6 @@ def validation(ts = 1505287800, prefix = "84.205.67.0/24"):
     G = nx.read_adjlist(fname)
 
     ##### Traceroute data #####
-    if ts<1500000000:
-        events = pickle.load(open("events_1488326400_1493596800.pickle", "rb"))
-    elif ts<1530000000:
-        events = pickle.load(open("events_1506816000_1514764800.pickle", "rb"))
-    else:
-        events = pickle.load(open("events_1531958400_1537401600.pickle", "rb"))
 
     ztr = set()
     ntr = set()
@@ -196,13 +190,25 @@ if __name__ == "__main__":
     if len(sys.argv) == 1:
         pool = multiprocessing.Pool()
         params = []
-        for i, path in enumerate(glob.glob(esteban_results_directory+"/1512819000*_24")):
+        all_events = [
+                pickle.load(open("events_1488326400_1493596800.pickle", "rb")),
+                pickle.load(open("events_1506816000_1514764800.pickle", "rb")),
+                pickle.load(open("events_1531958400_1537401600.pickle", "rb"))
+                ]
+        
+        for i, path in enumerate(glob.glob(esteban_results_directory+"/*_[24,48]")):
             dname = path.rpartition("/")[2]
             ts, _, prefix = dname.partition("_")
             prefix = prefix.replace("_","/")
 
             # print("Processing %s %s..." % (ts, prefix))
-            params.append( (int(ts), prefix) )
+            if ts<1500000000:
+                events = all_events[0]
+            elif ts<1530000000:
+                events = all_events[1]
+            else:
+                events = all_events[2]
+            params.append( (events, int(ts), prefix) )
             # validation(int(ts), prefix)
 
             # if i == 10:
@@ -231,7 +237,13 @@ if __name__ == "__main__":
     elif len(sys.argv)==3:
         ts = int(sys.argv[1])
         prefix = sys.argv[2]
-        validation(ts, prefix)
+        if ts<1500000000:
+            events = pickle.load(open("events_1488326400_1493596800.pickle", "rb"))
+        elif ts<1530000000:
+            events = pickle.load(open("events_1506816000_1514764800.pickle", "rb"))
+        else:
+            events = pickle.load(open("events_1531958400_1537401600.pickle", "rb"))
+        validation(events, ts, prefix)
 
     else:
         print("usage: %s timestamp prefix" % sys.argv[0])

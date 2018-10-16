@@ -105,6 +105,9 @@ class TracerouteData():
 
 if __name__ == "__main__":
     fname = sys.argv[1]
+    FORMAT = '%(asctime)s %(processName)s %(message)s'
+    logging.basicConfig(format=FORMAT, filename=fname+'.log', level=logging.DEBUG, datefmt='%Y-%m-%d %H:%M:%S')
+    logging.info("Started: %s" % sys.argv)
     td = pickle.load(open(fname, "rb"))
     td.getTraceroutes()
     td.listEvents()
