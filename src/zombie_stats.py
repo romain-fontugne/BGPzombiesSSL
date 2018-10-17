@@ -221,9 +221,9 @@ def compute_all_stats():
 
     ### Fetch all results
     # timestamp_prefix = "14"
-    timestamp_prefix = "15[1,2]"
+    # timestamp_prefix = "15[1,2]"
     # timestamp_prefix = "153"
-    # timestamp_prefix = "1"
+    timestamp_prefix = "1"
     for af, pfx_len in [(4, "24"),(6, "48")]:
         all_classification_results = defaultdict(dict)
 
@@ -355,7 +355,7 @@ def compute_all_stats():
         all_asn_zombie_frequency = collections.Counter(itertools.chain.from_iterable(all_zombies))
 
         print("Top zombie transit (nb. outbreak={}): ".format(nb_outbreak))
-        for asn, freq in all_asn_zombie_frequency.most_common(1000):
+        for asn, freq in all_asn_zombie_frequency.most_common(100):
             if hegemony[int(asn)]>0.001:
                 print("\t AS{}: {:.02f}% ({} times) hegemony={:.03f}".format(asn, 100*freq/nb_outbreak, freq, hegemony[int(asn)]))
 
@@ -452,6 +452,7 @@ def compute_all_stats():
         plt.savefig("fig/hist_nb_outbreak_per_prefix.pdf")
 
         print("On average {} outbreaks per beacon (max={})".format(np.mean(h_values), np.max(h_values)))
+        print("Number of oubreaks per beacon: ", nb_outbreak_per_prefix)
 
 
         nb_beacon_per_ts = {ts: len(events) for ts, events in all_classification_results.items()}
@@ -465,7 +466,7 @@ def compute_all_stats():
         plt.xlim([0.5,14.5])
         plt.tight_layout()
         plt.savefig("fig/CDF_nb_simult_zombie.pdf")
-        print(cdf)
+        # print(cdf)
         print(max(nb_beacon_per_ts, key=nb_beacon_per_ts.get))
 
         # for ts, val in nb_beacon_per_ts.items():

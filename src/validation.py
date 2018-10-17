@@ -6,13 +6,14 @@ plt.switch_backend('agg')
 import glob
 import pickle
 import networkx as nx
-from collections import defaultdict
+from collections import defaultdict, Counter
+from itertools import chain
 import multiprocessing
 
 sys.path.append("../ip2asn")
 import ip2asn
 
-ia = ip2asn.ip2asn("../ip2asn/db/rib.20180201.pickle")
+ia = ip2asn.ip2asn("../ip2asn/db/rib.20180701.pickle")
 esteban_results_directory = "20181001_BGPcount"
 
 def asnres(ip):
@@ -32,27 +33,56 @@ def validation(events, ts = 1505287800, prefix = "84.205.67.0/24"):
     the ground truth (red=zombie, green=normal, orange means results from 
     traceroutes and BGP are inconsistent, and gray means unknown)"""
 
-    print("Processing %s %s..." % (ts, prefix))
+    # print("Processing %s %s..." % (ts, prefix))
     fname = "zombie_paths/graph_%s_%s.txt" % (ts, prefix.replace("/", "_").replace("-",":"))
     G = nx.read_adjlist(fname)
+
+    use_bgp_data = True
 
     ##### Traceroute data #####
 
     ztr = set()
     ntr = set()
-    asn2ip = defaultdict(list) 
     for msmid, desc in events.items():
-        if 1800+(desc["start"]/3600)*3600 == ts and desc["prefix"] == prefix:
-            for ip in desc["zombie"]:
-                asn = asnres(ip)
-                asn2ip[asn].append(ip)
-                if asn in G:
-                    ztr.add(asn)
+        # select only traceroutes for this outbreak
+        if 1800+int(desc["start"]/3600)*3600 == ts and desc["prefix"] == prefix:
+            if desc["nb_traceroutes"] == 0:
+                continue
 
-            for ip in desc["clean"]:
-                asn = asnres(ip)
+            # traceroutes contain only *, the probes' AS has withdrawn the prefix
+            if desc["nb_only_stars"]>=desc["nb_traceroutes"]*0.75:
+                asn = Counter( map(asnres, desc["prb_ips"]) ).most_common(1)[0]
                 if asn in G:
                     ntr.add(asn)
+
+            else:
+                zombie_asn = [(asnres(ip), count) for ip, count in desc["zombie"].items()]
+                normal_asn = [(asnres(ip), count) for ip, count in desc["clean"].items()]
+
+                zombie_asn_count = defaultdict(int)
+                for asn, count in zombie_asn:
+                   zombie_asn_count[asn] += count
+
+                normal_asn_count = defaultdict(int)
+                for asn, count in normal_asn:
+                   normal_asn_count[asn] += count
+
+                for asn in set(chain(normal_asn_count.keys(), zombie_asn_count.keys())):
+                    if zombie_asn_count[asn] > normal_asn_count[asn]:
+                        ztr.add(asn)
+                    else:
+                        ntr.add(asn)
+
+
+                # for ip in desc["zombie"]:
+                    # asn = asnres(ip)
+                    # if asn in G:
+                        # ztr.add(asn)
+
+                # for ip in desc["clean"]:
+                    # asn = asnres(ip)
+                    # if asn in G:
+                        # ntr.add(asn)
 
     # Remove ASN 0 from results
     if "0" in ztr:
@@ -60,19 +90,23 @@ def validation(events, ts = 1505287800, prefix = "84.205.67.0/24"):
     if "0" in ntr:
         ntr.remove("0")
 
+    # print("traceroute conflicting results: {}".format(len(ntr.intersection(ztr))/len(ntr.union(ztr))))
+    ztr = ztr.difference(ntr)
+
     ##### BGP data #####
     fname = "zombie_paths/zombies_%s_%s.txt" % (ts, prefix.replace("/", "_").replace("-",":"))
 
     zbgp = set()
     nbgp = set()
-    for line in open(fname):
-        asn, zombie = [x for x in line.split()]
-        
-        if asn in G:
-            if int(zombie):
-                zbgp.add(asn)
-            else:
-                nbgp.add(asn)
+    if use_bgp_data:
+        for line in open(fname):
+            asn, zombie = [x for x in line.split()]
+            
+            if asn in G:
+                if int(zombie):
+                    zbgp.add(asn)
+                else:
+                    nbgp.add(asn)
 
 
     ##### Ground Truth: Merge BGP and traceroute #####
@@ -109,7 +143,9 @@ def validation(events, ts = 1505287800, prefix = "84.205.67.0/24"):
         else:
             npr.add(asn)
 
-
+    if len(zpr) == 0:
+        logging.error("G-SSL returned no zombies!")
+        return
 
     ##### Validation Results #####
     try:
@@ -135,6 +171,9 @@ def validation(events, ts = 1505287800, prefix = "84.205.67.0/24"):
     """ % (len(zpr.intersection(zgt)), len(zpr.intersection(ngt)), len(zpr.intersection(cgt)), len(zpr.difference(zgt.union(ngt.union(cgt)))),
         len(npr.intersection(zgt)), len(npr.intersection(ngt)), len(npr.intersection(cgt)), len(npr.difference(zgt.union(ngt.union(cgt)))))
 
+    if len(npr.intersection(zgt))>10:
+        print("resultats pourri: ", ts, prefix)
+
     fi.write(res)
     fi.close()
 
@@ -158,6 +197,7 @@ def validation(events, ts = 1505287800, prefix = "84.205.67.0/24"):
     nx.draw_networkx_labels(G, pos, {x:x for x in G.nodes()})
     plt.savefig("validation/%s_%s/graph_input_labelled.pdf" % (ts, prefix.replace("/","_")))
     # plt.show()
+    plt.close()
 
     # OUTPUT Graph and groud truth
     plt.figure(figsize=(12,12))
@@ -180,6 +220,7 @@ def validation(events, ts = 1505287800, prefix = "84.205.67.0/24"):
     nx.draw_networkx_labels(G, pos, {x:x for x in G.nodes()})
     plt.savefig("validation/%s_%s/graph_labelled.pdf" % (ts, prefix.replace("/","_")))
     # plt.show()
+    plt.close()
 
     return {"ZZ":len(zpr.intersection(zgt)), "ZN":len(zpr.intersection(ngt)), 
             "ZC":len(zpr.intersection(cgt)), "ZU":len(zpr.difference(zgt.union(ngt.union(cgt)))),
@@ -196,10 +237,12 @@ if __name__ == "__main__":
                 pickle.load(open("events_1531958400_1537401600.pickle", "rb"))
                 ]
         
-        for i, path in enumerate(glob.glob(esteban_results_directory+"/*_[24,48]")):
+        # for i, path in enumerate(glob.glob(esteban_results_directory+"/14883*_24")):
+        for i, path in enumerate(glob.glob(esteban_results_directory+"/1*_[2,4][4,8]")):
             dname = path.rpartition("/")[2]
             ts, _, prefix = dname.partition("_")
             prefix = prefix.replace("_","/")
+            ts = int(ts)
 
             # print("Processing %s %s..." % (ts, prefix))
             if ts<1500000000:
@@ -208,7 +251,7 @@ if __name__ == "__main__":
                 events = all_events[1]
             else:
                 events = all_events[2]
-            params.append( (events, int(ts), prefix) )
+            params.append( (events, ts, prefix) )
             # validation(int(ts), prefix)
 
             # if i == 10:
@@ -231,7 +274,7 @@ if __name__ == "__main__":
     normal      %s          %s          %s          %s
     """ % (agg_results["ZZ"], agg_results["ZN"], agg_results["ZC"],
         agg_results["ZU"], agg_results["NZ"], agg_results["NN"],
-        agg_results["ZC"], agg_results["ZU"])
+        agg_results["NC"], agg_results["NU"])
         )
 
     elif len(sys.argv)==3:
