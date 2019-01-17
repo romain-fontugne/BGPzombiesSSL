@@ -15,11 +15,14 @@ Please cite this paper if you want to refer to this work:
 ## Datasets
 We provide both our results from processed BGP data and traceroute data for validation.
 
-### Processed results
-Zombie paths: https://github.com/romain-fontugne/BGPzombiesSSL/tree/master/zombie_paths
-Contains two type of files: graph*.txt and zombies*.txt
-Normal paths: https://github.com/romain-fontugne/BGPzombiesSSL/tree/master/normal_paths
-Contains two type of files: normal_graph*.txt and normal_zombies*.txt
+### Results
+
+#### Processed BGP data (Zombies observed with RIS)
+The [zombie_paths folder](https://github.com/romain-fontugne/BGPzombiesSSL/tree/master/zombie_paths) and [normal_paths folder](https://github.com/romain-fontugne/BGPzombiesSSL/tree/master/normal_paths) provide the zombie paths detected during zombie outbreaks and the normal paths observed before the outbreaks. There is two types of files, the graph_ts_beacon.txt files contain the full AS graph for the given timestamp (ts) and beacon prefix. The zombies_ts_beacon.txt files contain the list of observed ASNs and their classification results, 1 means a zombie AS and 0 a normal AS.
+
+#### Classification results (Zombies inferred with G-SSL)
+Using the above data G-SSL classify unknown ASes as zombie or normal ASes. The classification results are available in the [GSSL_results](https://github.com/romain-fontugne/BGPzombiesSSL/tree/master/GSSL_results). For each beacon and timestamp there is a classification.txt file that contains the classification results. In this file 1.0 represent a normal ASN and 2.0 represents a zombie ASN.
+
 
 ### Traceroute data
 All traceroute results analyzed in our dataset are available through the RIPE Atlas API. 
