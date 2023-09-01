@@ -33,4 +33,4 @@ https://atlas.ripe.net/measurements/?page=1&search=description:campaign:stuck_ro
 You will find much more results there than there is in the paper as we keep running these experiments.
 
 ## Tools
-- G-SSL code: https://github.com/estbautista/My-toolboxes see for the standard_SSL_PR function in SSL_methods/operators/standard_SSL_PR.m
+- G-SSL code: see the repository [Label_Propagation_SSL](https://github.com/estbautista/Label_Propagation_SSL) for the standard_SSL_PR function in SSL_methods/operators/standard_SSL_PR.m
