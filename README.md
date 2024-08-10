@@ -1,6 +1,6 @@
 # BGP Zombies: an Analysis of Beacons Stuck Routes
 
-This repository complements our [PAM 2019 paper](https://www.iij-ii.co.jp/en/members/romain/pdf/romain_pam2019.pdf) on BGP Zombies.
+This repository complements our [PAM 2019 paper](https://www.iijlab.net/en/members/romain/pdf/romain_pam2019.pdf) on BGP Zombies.
 Please cite this paper if you want to refer to this work:
 ```
 @inproceedings{fontugne2019zombies,
